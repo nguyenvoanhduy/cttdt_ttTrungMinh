@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* Light mode mặc định */
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(1 0 0, hsl(0 0% 100%));
+  --foreground: oklch(0.129 0.042 264.695, hsl(222 47% 11%));
+
+  --card: oklch(1 0 0, hsl(0 0% 100%));
+  --card-foreground: oklch(0.129 0.042 264.695, hsl(222 47% 11%));
+
+  --popover: oklch(1 0 0, hsl(0 0% 100%));
+  --popover-foreground: oklch(0.129 0.042 264.695, hsl(222 47% 11%));
+
+  --primary: oklch(0.208 0.042 265.755, hsl(220 90% 56%));
+  --primary-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+
+  --secondary: oklch(0.968 0.007 247.896, hsl(240 4.8% 95.9%));
+  --secondary-foreground: oklch(0.208 0.042 265.755, hsl(222 47% 11%));
+
+  --muted: oklch(0.968 0.007 247.896, hsl(210 40% 96%));
+  --muted-foreground: oklch(0.554 0.046 257.417, hsl(215 16% 47%));
+
+  --accent: oklch(0.968 0.007 247.896, hsl(180 60% 50%));
+  --accent-foreground: oklch(0.208 0.042 265.755, hsl(0 0% 100%));
+
+  --destructive: oklch(0.577 0.245 27.325, hsl(0 84% 60%));
+
+  --border: oklch(0.929 0.013 255.508, hsl(214 32% 91%));
+  --input: oklch(0.929 0.013 255.508, hsl(214 32% 91%));
+  --ring: oklch(0.704 0.04 256.788, hsl(220 90% 56%));
+
+  --sidebar: oklch(0.984 0.003 247.858, hsl(0 0% 98%));
+  --sidebar-foreground: oklch(0.129 0.042 264.695, hsl(222 47% 11%));
+  --sidebar-primary: oklch(0.208 0.042 265.755, hsl(220 90% 56%));
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+  --sidebar-accent: oklch(0.968 0.007 247.896, hsl(180 60% 50%));
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755, hsl(0 0% 100%));
+  --sidebar-border: oklch(0.929 0.013 255.508, hsl(214 32% 91%));
+  --sidebar-ring: oklch(0.704 0.04 256.788, hsl(220 90% 56%));
+}
+
+/* Dark mode */
+.dark {
+  --background: oklch(0.129 0.042 264.695, hsl(222 47% 11%));
+  --foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+
+  --card: oklch(0.208 0.042 265.755, hsl(217 19% 27%));
+  --card-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+
+  --popover: oklch(0.208 0.042 265.755, hsl(217 19% 27%));
+  --popover-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+
+  --primary: oklch(0.929 0.013 255.508, hsl(220 90% 60%));
+  --primary-foreground: oklch(0.208 0.042 265.755, hsl(0 0% 100%));
+
+  --secondary: oklch(0.279 0.041 260.031, hsl(217 19% 27%));
+  --secondary-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+
+  --muted: oklch(0.279 0.041 260.031, hsl(217 19% 27%));
+  --muted-foreground: oklch(0.704 0.04 256.788, hsl(215 20% 65%));
+
+  --accent: oklch(0.279 0.041 260.031, hsl(180 60% 50%));
+  --accent-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+
+  --destructive: oklch(0.704 0.191 22.216, hsl(0 62.8% 30.6%));
+
+  --border: oklch(1 0 0 / 10%, hsl(217 19% 27%));
+  --input: oklch(1 0 0 / 15%, hsl(217 19% 27%));
+  --ring: oklch(0.551 0.027 264.364, hsl(220 90% 60%));
+
+  --sidebar: oklch(0.208 0.042 265.755, hsl(217 19% 27%));
+  --sidebar-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+  --sidebar-primary: oklch(0.488 0.243 264.376, hsl(220 90% 60%));
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+  --sidebar-accent: oklch(0.279 0.041 260.031, hsl(180 60% 50%));
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858, hsl(0 0% 100%));
+  --sidebar-border: oklch(1 0 0 / 10%, hsl(217 19% 27%));
+  --sidebar-ring: oklch(0.551 0.027 264.364, hsl(220 90% 60%));
+}
+
+/* Base layer: dùng trực tiếp biến màu, không @apply */
+@layer base {
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* Link styles */
+a {
+  font-weight: 500;
+  color: hsl(var(--primary));
+  text-decoration: inherit;
+}
+a:hover {
+  color: hsl(var(--primary-foreground));
+}
+
+/* Button styles */
+button {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  font-weight: 500;
+  transition: background-color 0.25s;
+}
+button:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+}

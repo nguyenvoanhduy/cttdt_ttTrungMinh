@@ -1,0 +1,16 @@
+# Thiết lập hành vi mặc định, phòng trường hợp mọi người không bật core.autocrlf.
+* text=auto
+
+# Ép dùng LF cho một số tệp để chuẩn hoá giữa các hệ điều hành
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Giữ nguyên tệp nhị phân (không chuyển đổi dòng / text)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
