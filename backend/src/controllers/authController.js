@@ -10,22 +10,22 @@ const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // 14 days in seconds
 
 export const signUp = async (req, res) => {
   try {
-    const { email, password, fullname } = req.body;
+    const { phonenumber, password, role ,fullname } = req.body;
     
     // Kiểm tra dữ liệu đầu vào
-    if (!email || !password || !fullname) {
+    if (!phonenumber || !password || !fullname) {
       return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
     }
-
-    // Kiểm tra email đã tồn tại
-    const existingUser = await User.findOne({ email });
+    // Kiểm tra sđt đã tồn tại
+    const existingUser = await User.findOne({ phonenumber });
     if (existingUser) {
-      return res.status(400).json({ message: 'Email đã được sử dụng' });
+      return res.status(400).json({ message: 'Số điện thoại đã được sử dụng' });
     }
 
     // Tạo hồ sơ cá nhân (Personal)
     const newPersonal = new Personal({
       fullname,
+      role,
       status: 'Đang hoạt động',
       createdAt: new Date(),
       updatedAt: new Date()
@@ -37,7 +37,8 @@ export const signUp = async (req, res) => {
 
     // Tạo người dùng (User)
     const newUser = new User({
-      email,
+      phonenumber,
+      role: role || 'Thành Viên',
       password: hashedPassword,
       personalId: newPersonal._id,
       createdAt: new Date(),
@@ -55,17 +56,17 @@ export const signUp = async (req, res) => {
 export const signIn = async (req, res) => {
     try {
         // Lấy input từ body
-        const { email, password } = req.body;
+        const { phonenumber, password } = req.body;
 
         //Kiểm tra dữ liệu đầu vào
-        if (!email || !password) {
+        if (!phonenumber || !password) {
             return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
         }
 
-        // Tìm người dùng theo email
-        const user = await User.findOne({ email });
+        // Tìm người dùng theo sđt
+        const user = await User.findOne({ phonenumber });
         if (!user) {
-            return res.status(404).json({ message: 'Email không tồn tại' });
+            return res.status(404).json({ message: 'Số điện thoại không tồn tại' });
         }
 
         // So sánh mật khẩu

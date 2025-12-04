@@ -37,7 +37,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
           <CardDescription>Nhập số điện thoại của bạn bên dưới để tạo tài khoản</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6">
+          <form className="space-y-6"s>
             <Field>
               <FieldLabel htmlFor="fullname">Họ và tên</FieldLabel>
               <Input id="fullname" type="text" {...register("fullname")}/>

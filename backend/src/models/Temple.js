@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const templeSchema = new mongoose.Schema({
   name: {
@@ -27,4 +27,4 @@ const templeSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Temple', templeSchema);
+export default mongoose.model('Temple', templeSchema);

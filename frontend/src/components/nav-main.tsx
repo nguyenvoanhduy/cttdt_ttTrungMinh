@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import { type Icon } from "@tabler/icons-react"
 
 import {
@@ -23,9 +24,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
+              <SidebarMenuButton asChild tooltip={item.title}>
+                <Link to={item.url}>
+                  {item.icon && <item.icon className="w-5 h-5" />}
+                  <span>{item.title}</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

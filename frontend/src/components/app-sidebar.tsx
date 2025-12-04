@@ -1,6 +1,5 @@
 import * as React from "react"
 import {
-  IconChartBar,
   IconDashboard,
   IconHelp,
   IconInnerShadowTop,
@@ -16,6 +15,10 @@ import {
   IconShieldCheck,
   IconFileTime,
 } from "@tabler/icons-react"
+import * as Icons from './Icons'
+import { NavLink } from 'react-router-dom';
+
+
 
 import { NavDocuments } from "@/components/nav-personals-organization"
 import { NavEvents } from "@/components/nav-events"
@@ -42,13 +45,8 @@ const data = {
   navMain: [
     {
       title: "Bảng điều khiển",
-      url: "#",
+      url: "/admin/dashboard",
       icon: IconDashboard,
-    },
-    {
-      title: "Thống kê",
-      url: "#",
-      icon: IconChartBar,
     },
   ],
   navSecondary: [
@@ -71,51 +69,51 @@ const data = {
   personalsAndOrganization: [
     {
       name: "Tín đồ",
-      url: "#",
+      url: "/admin/personals",
       icon: IconUser,
     },
     {
       name: "Thánh Thất",
-      url: "#",
+      url: "/admin/temples",
       icon: IconHome,
     },
     {
       name: "Ban",
-      url: "#",
+      url: "/admin/departments",
       icon: IconGitFork,
     },
   ],
   eventsAndActivities: [
     {
       name: "Sự kiện",
-      url: "#",
+      url: "/admin/events",
       icon: IconCalendar,
     },
     {
       name: "Thư viện",
-      url: "#",
+      url: "/admin/library",
       icon: IconLibrary,
     },
     {
       name: "Thông báo",
-      url: "#",
+      url: "/admin/notifications",
       icon: IconBell,
     },
   ],
   system: [
     {
       name: "Hỗ trợ trực tuyến",
-      url: "#",
+      url: "/admin/support",
       icon: IconMessageChatbot,
     },
     {
       name: "Tài khoản & Phân quyền",
-      url: "#",
+      url: "/admin/roles",
       icon: IconShieldCheck,
     },
     {
       name: "Nhập ký hoạt động",
-      url: "#",
+      url: "/admin/logs",
       icon: IconFileTime,
     },
   ],
@@ -130,7 +128,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!">
-              <a href="#">
+              <a href="/admin">
                 <IconInnerShadowTop className="size-5!" />
                 <span className="text-base font-semibold">Thánh Thất Trung Minh</span>
               </a>
@@ -148,6 +146,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
+      <div className="px-6 py-4 border-t border-gray-100">
+          <NavLink 
+            to="/" 
+            className="flex items-center text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium"
+          >
+              <Icons.ArrowLeft className="w-4 h-4 mr-2" />
+              Trở về Trang chủ
+          </NavLink>
+      </div>
     </Sidebar>
   )
 }

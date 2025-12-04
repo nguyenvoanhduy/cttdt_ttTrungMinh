@@ -15,6 +15,14 @@ const templeHistorySchema = new mongoose.Schema({
 }, { _id: false });
 
 const personalSchema = new mongoose.Schema({
+
+  phonenumber: {
+    type: String,
+    required: true,
+    unique: true,   // Personal chỉ có 1 số điện thoại
+    trim: true
+  },
+  
   fullname: {
     type: String,
     required: true,
@@ -30,10 +38,7 @@ const personalSchema = new mongoose.Schema({
   address: {
     type: String
   },
-  phoneNumber: {
-    type: String
-  },
-  departmentId: {
+  department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department'
   },
@@ -53,7 +58,7 @@ const personalSchema = new mongoose.Schema({
   note: {
     type: String
   },
-  currentTempleId: {
+  currentTemple: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Temple'
   },

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  email: {
+  phonenumber: {
     type: String,
     required: true,
     unique: true,
@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    default: 'Thành Viên'
+    default: 'Thành Viên'   
   },
   personalId: {
     type: mongoose.Schema.Types.ObjectId,

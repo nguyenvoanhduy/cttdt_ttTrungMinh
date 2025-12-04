@@ -1,30 +1,55 @@
-node_modules/
+#######################
+# ENVIRONMENT FILES
+#######################
 .env
+.env.*      # ignore all env variants
 !.env.example
-jsconfig.json
 
-# REACT (giao diện React)
-# Nhật ký/Logs
-logs
-*.log
+#######################
+# NODE / JAVASCRIPT
+#######################
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+#######################
+# DIST / BUILD
+#######################
+dist/
+dist-ssr/
+build/
+out/
+.tmp/
+.cache/
 *.local
 
-# Thư mục và tệp của trình soạn thảo (IDE)
+#######################
+# TYPESCRIPT
+#######################
+*.tsbuildinfo
+
+#######################
+# EDITORS / IDE
+#######################
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+#######################
+# SYSTEM FILES
+#######################
+.DS_Store
+Thumbs.db
+
+#######################
+# FRONTEND CONFIGS
+#######################
+jsconfig.json
