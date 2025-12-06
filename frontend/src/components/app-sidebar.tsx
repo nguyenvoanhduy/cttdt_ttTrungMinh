@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 import {
   IconDashboard,
   IconHelp,
@@ -14,18 +14,17 @@ import {
   IconMessageChatbot,
   IconShieldCheck,
   IconFileTime,
-} from "@tabler/icons-react"
-import * as Icons from './Icons'
-import { NavLink } from 'react-router-dom';
+  IconPhoto,
+} from "@tabler/icons-react";
+import * as Icons from "./Icons";
+import { NavLink } from "react-router-dom";
 
-
-
-import { NavDocuments } from "@/components/nav-personals-organization"
-import { NavEvents } from "@/components/nav-events"
-import { NavSystem } from "@/components/nav-system"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavDocuments } from "@/components/nav-personals-organization";
+import { NavEvents } from "@/components/nav-events";
+import { NavSystem } from "@/components/nav-system";
+import { NavMain } from "@/components/nav-main";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -34,7 +33,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const data = {
   user: {
@@ -95,6 +94,11 @@ const data = {
       icon: IconLibrary,
     },
     {
+      name: "Thư viện ảnh",
+      url: "/admin/gallery",
+      icon: IconPhoto,
+    },
+    {
       name: "Thông báo",
       url: "/admin/notifications",
       icon: IconBell,
@@ -117,7 +121,7 @@ const data = {
       icon: IconFileTime,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -127,10 +131,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!">
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
+            >
               <a href="/admin">
                 <IconInnerShadowTop className="size-5!" />
-                <span className="text-base font-semibold">Thánh Thất Trung Minh</span>
+                <span className="text-base font-semibold">
+                  Thánh Thất Trung Minh
+                </span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -147,14 +154,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
       <div className="px-6 py-4 border-t border-gray-100">
-          <NavLink 
-            to="/" 
-            className="flex items-center text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium"
-          >
-              <Icons.ArrowLeft className="w-4 h-4 mr-2" />
-              Trở về Trang chủ
-          </NavLink>
+        <NavLink
+          to="/"
+          className="flex items-center text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium"
+        >
+          <Icons.ArrowLeft className="w-4 h-4 mr-2" />
+          Trở về Trang chủ
+        </NavLink>
       </div>
     </Sidebar>
-  )
+  );
 }

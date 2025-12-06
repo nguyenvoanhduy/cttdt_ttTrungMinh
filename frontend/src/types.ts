@@ -1,34 +1,34 @@
-import React from 'react';
+import React from "react";
 
 // --- ENUMS ---
 export enum Gender {
-  MALE = 'Nam',
-  FEMALE = 'Nữ',
-  OTHER = 'Khác'
+  MALE = "Nam",
+  FEMALE = "Nữ",
+  OTHER = "Khác",
 }
 
 export enum UserRole {
-  MEMBER = 'Thành Viên',
-  ADMIN = 'Admin',
-  MANAGER = 'Trưởng Ban'
+  MEMBER = "Thành Viên",
+  ADMIN = "Admin",
+  MANAGER = "Trưởng Ban",
 }
 
 export enum UserStatus {
-  ACTIVE = 'Đang hoạt động',
-  INACTIVE = 'Ngừng hoạt động',
-  ON_LEAVE = 'Tạm Nghỉ'
+  ACTIVE = "Đang hoạt động",
+  INACTIVE = "Ngừng hoạt động",
+  ON_LEAVE = "Tạm Nghỉ",
 }
 
 export enum EventStatus {
-  UPCOMING = 'Sắp diễn ra',
-  ONGOING = 'Đang diễn ra',
-  COMPLETED = 'Đã kết thúc',
-  CANCELLED = 'Đã hủy'
+  UPCOMING = "Sắp diễn ra",
+  ONGOING = "Đang diễn ra",
+  COMPLETED = "Đã kết thúc",
+  CANCELLED = "Đã hủy",
 }
 
 export enum MediaType {
-  IMAGE = 'image',
-  VIDEO = 'video'
+  IMAGE = "image",
+  VIDEO = "video",
 }
 
 // --- DATABASE ENTITIES ---
@@ -39,6 +39,14 @@ export interface Temple {
   address: string;
   establishedDate: string; // ISO Date
   description?: string;
+  imageUrl?: string;
+}
+
+export interface TempleHistoryEntry {
+  templeId: string;
+  startDate: string;
+  endDate?: string;
+  role?: string;
 }
 
 export interface Department {
@@ -62,6 +70,7 @@ export interface Personal {
   avatarUrl?: string;
   note?: string;
   currentTempleId?: string; // Ref to Temple
+  templeHistory?: TempleHistoryEntry[];
 }
 
 export interface User {
@@ -95,7 +104,8 @@ export interface Book {
   uploadedBy: string; // Ref User
   uploadDate: string;
   fileUrl: string;
-  fileType: 'pdf' | 'docx';
+  coverImageUrl?: string; // Added cover image
+  fileType: "pdf" | "docx";
   downloadCount: number;
   viewCount: number;
 }
@@ -130,16 +140,16 @@ export interface Notification {
   message: string;
   link?: string;
   isRead: boolean;
-  type: 'event' | 'system' | 'chat' | 'family' | 'media' | 'other';
+  type: "event" | "system" | "chat" | "family" | "media" | "other";
   createdAt: string;
 }
 
 export interface SupportTicket {
-    _id: string;
-    userId: string;
-    status: 'Đang diễn ra' | 'Kết thúc';
-    lastMessage?: string;
-    updatedAt: string;
+  _id: string;
+  userId: string;
+  status: "Đang diễn ra" | "Kết thúc";
+  lastMessage?: string;
+  updatedAt: string;
 }
 
 export interface ActivityLog {

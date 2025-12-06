@@ -3,25 +3,54 @@ import { useNavigate, Link } from "react-router-dom";
 import * as Icons from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
 
-export const LoginPage = () => {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
+export const RegisterPage = () => {
+  const [formData, setFormData] = useState({
+    fullname: "",
+    phoneNumber: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Basic Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const success = await login(phoneNumber, password);
+      const success = await register({
+        fullname: formData.fullname,
+        phoneNumber: formData.phoneNumber,
+        password: formData.password,
+      });
+
       if (success) {
-        navigate("/"); // Redirect to Landing Page on success
+        // Redirect to login page after successful registration
+        // In a real app, you might want to auto-login or show a success message
+        alert("Đăng ký thành công! Vui lòng đăng nhập.");
+        navigate("/login");
       } else {
-        setError("Số điện thoại hoặc mật khẩu không chính xác.");
+        setError("Đăng ký thất bại. Số điện thoại có thể đã tồn tại.");
       }
     } catch (err) {
       setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
@@ -39,10 +68,10 @@ export const LoginPage = () => {
           </div>
         </Link>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 font-serif">
-          Đăng nhập hệ thống
+          Đăng ký tài khoản
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Cổng thông tin Thánh Thất Trung Minh
+          Trở thành thành viên của Thánh Thất Trung Minh
         </p>
       </div>
 
@@ -64,7 +93,31 @@ export const LoginPage = () => {
 
             <div>
               <label
-                htmlFor="phone"
+                htmlFor="fullname"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Họ và tên Thánh
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Icons.User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="fullname"
+                  name="fullname"
+                  type="text"
+                  required
+                  value={formData.fullname}
+                  onChange={handleChange}
+                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
+                  placeholder="Nguyễn Văn A"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="phoneNumber"
                 className="block text-sm font-medium text-gray-700"
               >
                 Số điện thoại
@@ -74,13 +127,12 @@ export const LoginPage = () => {
                   <Icons.Phone className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="phone"
-                  name="phone"
+                  id="phoneNumber"
+                  name="phoneNumber"
                   type="text"
-                  autoComplete="tel"
                   required
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
                   placeholder="0909xxxxxx"
                 />
@@ -102,39 +154,36 @@ export const LoginPage = () => {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={handleChange}
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Xác nhận mật khẩu
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Icons.Shield className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
+                  placeholder="••••••••"
                 />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-900"
-                >
-                  Ghi nhớ đăng nhập
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a
-                  href="#"
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Quên mật khẩu?
-                </a>
               </div>
             </div>
 
@@ -146,7 +195,7 @@ export const LoginPage = () => {
                   isLoading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >
-                {isLoading ? "Đang xử lý..." : "Đăng nhập"}
+                {isLoading ? "Đang đăng ký..." : "Đăng ký"}
               </button>
             </div>
           </form>
@@ -158,29 +207,18 @@ export const LoginPage = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  Chưa có tài khoản?
+                  Đã có tài khoản?
                 </span>
               </div>
             </div>
 
             <div className="mt-6 flex justify-center">
               <Link
-                to="/register"
+                to="/login"
                 className="text-blue-600 hover:text-blue-500 font-medium text-sm"
               >
-                Đăng ký ngay
+                Đăng nhập ngay
               </Link>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-gray-500">
-              <div className="p-2 bg-gray-50 rounded border border-gray-200 text-center">
-                <span className="block font-bold">Admin</span>
-                0909000001
-              </div>
-              <div className="p-2 bg-gray-50 rounded border border-gray-200 text-center">
-                <span className="block font-bold">Thành viên</span>
-                0912345678
-              </div>
             </div>
           </div>
         </div>

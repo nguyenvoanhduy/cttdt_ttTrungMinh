@@ -55,8 +55,10 @@ import {
   UserCog,
   Settings,
   Camera,
-  LogIn
-} from 'lucide-react';
+  LogIn,
+  Image,
+  FileSpreadsheet,
+} from "lucide-react";
 
 export {
   LayoutDashboard,
@@ -115,5 +117,7 @@ export {
   UserCog,
   Settings,
   Camera,
-  LogIn
+  LogIn,
+  Image,
+  FileSpreadsheet,
 };

@@ -1,8 +1,6 @@
-"use client"
+"use client";
 
-import {
-  type Icon,
-} from "@tabler/icons-react"
+import { type Icon } from "@tabler/icons-react";
 
 import {
   SidebarGroup,
@@ -10,18 +8,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function NavEvents({
   items,
 }: {
   items: {
-    name: string
-    url: string
-    icon: Icon
-  }[]
+    name: string;
+    url: string;
+    icon: Icon;
+  }[];
 }) {
-
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Sự kiện & hoạt động</SidebarGroupLabel>
@@ -38,5 +35,5 @@ export function NavEvents({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }
