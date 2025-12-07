@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Link } from 'react-router-dom';
 import * as Icons from '../components/Icons';
 import { MOCK_EVENTS } from '@/constants';
@@ -42,7 +41,7 @@ export const LandingPage = () => {
                     <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700 ease-out">
                          <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 to-transparent pointer-events-none z-10"></div>
                          <img 
-                            src="../../public/anhThanhThat.png" 
+                            src="./public/anhThanhThat.png" 
                             alt="Thánh Thất Trung Minh" 
                             className="w-full h-full object-cover aspect-[4/3] transform hover:scale-105 transition-transform duration-1000"
                         />
