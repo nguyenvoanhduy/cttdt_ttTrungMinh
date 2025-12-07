@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useRef } from "react";
 import * as Icons from "@/components/Icons";
 import { MOCK_BOOKS, MOCK_SONGS, MOCK_VIDEOS } from "@/constants";

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import * as Icons from "../components/Icons";
 import { MOCK_BOOKS, MOCK_SONGS, MOCK_VIDEOS } from "../constants";
 import type { Book, Song, Video } from "../types";
@@ -204,7 +205,7 @@ export const PublicLibraryPage = () => {
         {activeTabType === "music" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 fade-in">
             {filteredSongs.length > 0 ? (
-              filteredSongs.map((song, idx) => (
+              filteredSongs.map((song) => (
                 <div
                   key={song._id}
                   onClick={() => handlePlaySong(song)}
