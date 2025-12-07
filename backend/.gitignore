@@ -1,6 +1,7 @@
 #######################
 # ENVIRONMENT FILES
 #######################
+backend/.env
 .env
 .env.*      # ignore all env variants
 !.env.example
