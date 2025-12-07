@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,7 +38,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
           <CardDescription>Nhập số điện thoại của bạn bên dưới để tạo tài khoản</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6"s>
+          <form className="space-y-6">
             <Field>
               <FieldLabel htmlFor="fullname">Họ và tên</FieldLabel>
               <Input id="fullname" type="text" {...register("fullname")}/>
