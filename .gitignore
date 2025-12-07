@@ -1,0 +1,63 @@
+#######################
+# ENV FILES
+#######################
+# Root env
+.env
+.env.*      
+!.env.example
+
+# Backend env
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+#######################
+# NODE MODULES
+#######################
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+#######################
+# DIST / BUILD
+#######################
+dist/
+dist-ssr/
+build/
+out/
+.tmp/
+.cache/
+*.local
+
+frontend/dist/
+frontend/build/
+backend/dist/
+backend/build/
+
+#######################
+# TYPESCRIPT
+#######################
+*.tsbuildinfo
+
+#######################
+# EDITORS / IDE
+#######################
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+#######################
+# SYSTEM FILES
+#######################
+.DS_Store
+Thumbs.db
+
+#######################
+# FRONTEND CONFIGS
+#######################
+jsconfig.json
