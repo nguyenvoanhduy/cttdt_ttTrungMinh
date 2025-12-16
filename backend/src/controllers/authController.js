@@ -26,6 +26,7 @@ export const signUp = async (req, res) => {
     const newPersonal = new Personal({
       fullname,
       role,
+      phonenumber,
       status: 'Đang hoạt động',
       createdAt: new Date(),
       updatedAt: new Date()

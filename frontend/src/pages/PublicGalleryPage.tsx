@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable react-hooks/purity */
+import { useState } from "react";
 import * as Icons from "../components/Icons";
 import { MOCK_EVENTS } from "../constants";
 

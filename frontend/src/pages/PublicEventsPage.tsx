@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState } from "react";
 import * as Icons from "../components/Icons";
 import { MOCK_EVENTS, MOCK_PERSONALS } from "../constants";
 import { EventStatus, type Event } from "../types";

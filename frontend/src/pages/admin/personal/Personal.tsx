@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import * as Icons from "@/components/Icons";
 import { MOCK_PERSONALS, MOCK_TEMPLES, MOCK_DEPARTMENTS } from "@/constants";
 import {
