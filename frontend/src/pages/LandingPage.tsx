@@ -19,8 +19,8 @@ export const LandingPage = () => {
                         Cổng thông tin điện tử
                     </h2>
                     <h1 className="font-sans text-5xl md:text-6xl lg:text-7xl font-extrabold text-blue-600 leading-tight mb-6 animate-in slide-in-from-bottom-5 duration-700 delay-100">
-                        THÁNH THẤT <br/>
-                        <span className="text-blue-500">TRUNG MINH</span>
+                        PHÂN TÍCH THIẾT KẾ <br/>
+                        <span className="text-blue-500">HỆ THỐNG THÔNG TIN</span>
                     </h1>
                     <p className="text-gray-600 text-lg md:text-xl leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0 animate-in slide-in-from-bottom-5 duration-700 delay-200">
                         Nơi cập nhật tin tức, sự kiện về hoạt động của 
