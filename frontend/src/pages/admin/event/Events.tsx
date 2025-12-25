@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from "react";
 import * as Icons from "@/components/Icons";
 import { MOCK_EVENTS, MOCK_PERSONALS } from "@/constants";

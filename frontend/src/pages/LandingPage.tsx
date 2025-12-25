@@ -18,6 +18,7 @@ export const LandingPage = () => {
                     <h2 className="text-blue-500 font-bold tracking-widest text-sm uppercase mb-3 animate-in slide-in-from-bottom-5 duration-700">
                         Cổng thông tin điện tử
                     </h2>
+                    <h1>Nguyễn Võ Anh Duy - Chiều Thứ 5</h1>
                     <h1 className="font-sans text-5xl md:text-6xl lg:text-7xl font-extrabold text-blue-600 leading-tight mb-6 animate-in slide-in-from-bottom-5 duration-700 delay-100">
                         THÁNH THẤT <br/>
                         <span className="text-blue-500">TRUNG MINH</span>
