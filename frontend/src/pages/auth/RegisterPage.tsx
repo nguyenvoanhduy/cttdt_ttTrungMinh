@@ -40,7 +40,7 @@ export const RegisterPage = () => {
     try {
       const success = await register({
         fullname: formData.fullname,
-        phoneNumber: formData.phoneNumber,
+        phonenumber: formData.phoneNumber,
         password: formData.password,
       });
 

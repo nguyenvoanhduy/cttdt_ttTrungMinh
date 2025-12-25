@@ -1,40 +1,40 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
   phonenumber: {
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
   },
   password: {
     type: String,
-    required: true
+    required: true,
   },
   role: {
     type: String,
-    default: 'Thành Viên'   
+    default: "Thành Viên",
   },
   personalId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Personal',
-    required: true
+    ref: "Personal",
+    required: true,
   },
   refreshToken: {
-    type: String
+    type: String,
   },
   lastLogin: {
-    type: Date
+    type: Date,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 export default User;

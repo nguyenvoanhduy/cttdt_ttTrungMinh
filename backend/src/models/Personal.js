@@ -1,77 +1,83 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const templeHistorySchema = new mongoose.Schema({
-  templeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Temple',
-    required: true
+const templeHistorySchema = new mongoose.Schema(
+  {
+    templeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Temple",
+      required: true,
+    },
+    joinedAt: {
+      type: Date,
+    },
+    leftAt: {
+      type: Date,
+    },
   },
-  joinedAt: {
-    type: Date
-  },
-  leftAt: {
-    type: Date
-  }
-}, { _id: false });
+  { _id: false }
+);
 
 const personalSchema = new mongoose.Schema({
-
   phonenumber: {
     type: String,
     required: true,
-    unique: true,   // Personal chỉ có 1 số điện thoại
-    trim: true
+    unique: true, // Personal chỉ có 1 số điện thoại
+    trim: true,
   },
-  
+
   fullname: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+  },
+  email: {
+    type: String,
+    trim: true,
   },
   gender: {
     type: String,
-    enum: ['Nam', 'Nữ']
+    enum: ["Nam", "Nữ"],
   },
   dateOfBirth: {
-    type: Date
+    type: Date,
   },
   address: {
-    type: String
+    type: String,
   },
   department: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Department'
+    ref: "Department",
   },
   position: {
-    type: String
+    type: String,
   },
   joinDate: {
-    type: Date
+    type: Date,
   },
   status: {
     type: String,
-    enum: ['Đang hoạt động', 'Tạm Nghỉ']
+    enum: ["Đang hoạt động", "Tạm Nghỉ"],
   },
   avatarUrl: {
-    type: String
+    type: String,
   },
   note: {
-    type: String
+    type: String,
   },
   currentTemple: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Temple'
+    ref: "Temple",
   },
   templeHistory: [templeHistorySchema],
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-const Personal = mongoose.model('Personal', personalSchema);
+const Personal = mongoose.model("Personal", personalSchema);
 export default Personal;

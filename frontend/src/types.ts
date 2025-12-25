@@ -59,6 +59,7 @@ export interface Department {
 export interface Personal {
   _id: string;
   fullname: string;
+  email?: string;
   phoneNumber?: string; // Ref to User
   gender: Gender;
   dateOfBirth?: string;
