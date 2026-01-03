@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/Toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-const SOCKET_URL = API_BASE_URL.replace('/api', '');
+const SOCKET_URL = API_BASE_URL.replace(/\/api$/, '');
 
 const socket = io(SOCKET_URL, {
   transports: ["websocket"]
