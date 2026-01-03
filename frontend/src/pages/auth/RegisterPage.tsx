@@ -10,29 +10,44 @@ export const RegisterPage = () => {
     phoneNumber: "",
     password: "",
     confirmPassword: "",
+    agreeTerms: false,
   });
+
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Basic Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
+    if (!formData.fullname || !formData.phoneNumber) {
+      setError("Vui lòng nhập đầy đủ thông tin.");
       return;
     }
 
     if (formData.password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    if (!formData.agreeTerms) {
+      setError("Bạn cần đồng ý với các quy định.");
       return;
     }
 
@@ -46,8 +61,6 @@ export const RegisterPage = () => {
       });
 
       if (success) {
-        // Redirect to login page after successful registration
-        // In a real app, you might want to auto-login or show a success message
         alert("Đăng ký thành công! Vui lòng đăng nhập.");
         navigate("/login");
       } else {
@@ -61,169 +74,167 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link to="/" className="flex justify-center mb-6">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg">
-            <Icons.Home className="w-8 h-8" />
+    <div className="min-h-screen flex bg-slate-50 font-sans overflow-hidden">
+      {/* ===== LEFT: VISUAL ===== */}
+      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12 overflow-hidden">
+        <div className="absolute inset-0 bg-violet-600">
+          <div className="absolute top-0 -left-20 w-[500px] h-[500px] bg-sky-500 rounded-full mix-blend-multiply blur-[90px] opacity-70 animate-blob" />
+          <div className="absolute top-0 -right-20 w-[500px] h-[500px] bg-rose-500 rounded-full mix-blend-multiply blur-[90px] opacity-70 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-20 left-20 w-[500px] h-[500px] bg-cyan-400 rounded-full mix-blend-multiply blur-[90px] opacity-70 animate-blob animation-delay-4000" />
+        </div>
+
+        <div className="absolute inset-0 opacity-[0.15] bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')]" />
+
+        <div className="relative z-10 text-center max-w-lg text-white">
+          <div className="mb-10 inline-flex p-8 bg-white/10 backdrop-blur-2xl rounded-[3rem] border border-white/20 shadow-2xl">
+            <img
+              src="/logoThanhThat.png"
+              alt="Logo"
+              className="w-28 h-28 object-contain rounded-full"
+            />
           </div>
-        </Link>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 font-serif">
-          Đăng ký tài khoản
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Trở thành thành viên của Thánh Thất Trung Minh
-        </p>
+
+          <h1 className="text-5xl font-black mb-6 leading-tight">
+            Khởi Đầu <br />
+            <span className="text-violet-200">Hành Trình Mới</span>
+          </h1>
+
+          <p className="text-white/90 text-lg">
+            Gia nhập cùng Thánh Thất Trung Minh.
+          </p>
+        </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+      {/* ===== RIGHT: REGISTER FORM ===== */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16 bg-white relative overflow-y-auto">
+        <Link
+          to="/"
+          className="absolute top-10 left-10 flex items-center text-sm font-bold text-slate-500 hover:text-violet-600"
+        >
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center mr-3">
+            <Icons.ArrowLeft className="w-4 h-4" />
+          </div>
+          Trang chủ
+        </Link>
+
+        <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700 py-10">
+          <div className="mb-10">
+            <h2 className="text-4xl font-black text-slate-900 mb-3">
+              Tạo tài khoản
+            </h2>
+            <p className="text-slate-500 font-medium">
+              Gia nhập đại gia đình Trung Minh hôm nay.
+            </p>
+          </div>
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <Icons.AlertTriangle className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
+              <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center text-rose-700 text-sm">
+                <Icons.AlertTriangle className="w-5 h-5 mr-3 text-rose-500" />
+                {error}
               </div>
             )}
 
+            {/* Fullname */}
             <div>
-              <label
-                htmlFor="fullname"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Họ và tên Thánh
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                Họ tên
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Icons.User className="h-5 w-5 text-gray-400" />
+              <div className="relative mt-2">
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-300">
+                  <Icons.User className="w-5 h-5" />
                 </div>
                 <input
-                  id="fullname"
                   name="fullname"
-                  type="text"
                   required
                   value={formData.fullname}
                   onChange={handleChange}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
                   placeholder="Nguyễn Văn A"
+                  className="w-full pl-14 pr-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white outline-none font-semibold"
                 />
               </div>
             </div>
 
+            {/* Phone */}
             <div>
-              <label
-                htmlFor="phoneNumber"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                 Số điện thoại
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Icons.Phone className="h-5 w-5 text-gray-400" />
+              <div className="relative mt-2">
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-300">
+                  <Icons.Phone className="w-5 h-5" />
                 </div>
                 <input
-                  id="phoneNumber"
                   name="phoneNumber"
-                  type="text"
                   required
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
-                  placeholder="0909xxxxxx"
+                  placeholder="09xx xxx xxx"
+                  className="w-full pl-14 pr-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white outline-none font-semibold"
                 />
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Mật khẩu
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Icons.Shield className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
+            {/* Password */}
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                name="password"
+                type="password"
+                required
+                placeholder="Mật khẩu"
+                value={formData.password}
+                onChange={handleChange}
+                className="px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white outline-none font-semibold"
+              />
+              <input
+                name="confirmPassword"
+                type="password"
+                required
+                placeholder="Xác nhận"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white outline-none font-semibold"
+              />
             </div>
-
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Xác nhận mật khẩu
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Icons.Shield className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {isLoading ? "Đang đăng ký..." : "Đăng ký"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-5 rounded-2xl bg-violet-600 text-white font-black shadow-xl hover:bg-violet-700 hover:-translate-y-1 transition-all disabled:opacity-70"
+            >
+              {isLoading ? (
+                <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+              ) : (
+                "ĐĂNG KÝ"
+              )}
+            </button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Đã có tài khoản?
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-center">
+          <div className="mt-10 text-center">
+            <p className="text-slate-500 font-bold">
+              Đã có tài khoản?{" "}
               <Link
                 to="/login"
-                className="text-blue-600 hover:text-blue-500 font-medium text-sm"
+                className="text-violet-600 hover:underline"
               >
-                Đăng nhập ngay
+                Đăng nhập
               </Link>
-            </div>
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Animations */}
+      <style>{`
+        @keyframes blob {
+          0% { transform: translate(0,0) scale(1); }
+          33% { transform: translate(30px,-50px) scale(1.1); }
+          66% { transform: translate(-20px,20px) scale(0.9); }
+          100% { transform: translate(0,0) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+      `}</style>
     </div>
   );
 };

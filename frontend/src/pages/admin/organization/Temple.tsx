@@ -1,16 +1,46 @@
-import React, { useState, useRef } from "react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useRef, useEffect } from "react";
 import * as Icons from "@/components/Icons";
-import { MOCK_TEMPLES } from "@/constants";
 import type { Temple } from "@/types";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/Toast';
 
 export const TemplePage = () => {
-  const [temples, setTemples] = useState<Temple[]>(MOCK_TEMPLES);
+  const [temples, setTemples] = useState<Temple[]>([]);
   const [searchTerm, setSearchTerm] = useState(""); // Search State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Temple>>({});
   const [editingId, setEditingId] = useState<string | null>(null); // Track edit mode
   const [isSaving, setIsSaving] = useState(false);
+  const [, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({ 
+    open: false, id: '', name: '' 
+  });
+  const { toasts, removeToast, success, error: showError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const fetchTemples = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        const response = await fetch("http://localhost:3000/api/temples", { 
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined 
+        });
+        if (!response.ok) throw new Error("Failed to fetch temples");
+        const data = await response.json();
+        setTemples(data); // API trả về mảng trực tiếp
+        console.log("Đã tải", data.length, "thánh thất từ database");
+      } catch (err) {
+        console.error("Error fetching temples:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTemples();
+  }, []);
 
   // Filter Logic
   const filteredTemples = temples.filter(
@@ -26,7 +56,12 @@ export const TemplePage = () => {
   };
 
   const handleEdit = (temple: Temple) => {
-    setFormData({ ...temple });
+    setFormData({ 
+      ...temple,
+      establishedDate: temple.establishedDate 
+        ? new Date(temple.establishedDate) as any
+        : undefined
+    });
     setEditingId(temple._id);
     setIsModalOpen(true);
   };
@@ -53,45 +88,111 @@ export const TemplePage = () => {
     fileInputRef.current?.click();
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setTimeout(() => {
+    
+    try {
+      const token = localStorage.getItem("accessToken");
+      const headers: any = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      // Prepare data
+      const saveData = {
+        name: formData.name,
+        address: formData.address,
+        establishedDate: formData.establishedDate
+          ? (typeof formData.establishedDate === 'object'
+            ? (formData.establishedDate as Date).toISOString()
+            : new Date(formData.establishedDate).toISOString())
+          : new Date().toISOString(),
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+      };
+
       if (editingId) {
         // Update existing
+        const response = await fetch(`http://localhost:3000/api/temples/${editingId}`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(saveData),
+        });
+
+        if (!response.ok) throw new Error("Failed to update temple");
+        const updatedTemple = await response.json();
+
         setTemples((prev) =>
-          prev.map((t) =>
-            t._id === editingId ? ({ ...t, ...formData } as Temple) : t
-          )
+          prev.map((t) => (t._id === editingId ? updatedTemple : t))
         );
       } else {
         // Create new
-        const newTemple: Temple = {
-          _id: Date.now().toString(),
-          name: formData.name || "Thánh Thất Mới",
-          address: formData.address || "",
-          establishedDate: formData.establishedDate || new Date().toISOString(),
-          description: formData.description,
-          imageUrl: formData.imageUrl,
-        };
+        const response = await fetch("http://localhost:3000/api/temples", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(saveData),
+        });
+
+        if (!response.ok) throw new Error("Failed to create temple");
+        const newTemple = await response.json();
+
         setTemples((prev) => [...prev, newTemple]);
       }
 
-      setIsSaving(false);
       setIsModalOpen(false);
       setFormData({});
       setEditingId(null);
-    }, 800);
+      success('Đã lưu thánh thất thành công');
+    } catch (err) {
+      console.error("Error saving temple:", err);
+      showError('Có lỗi xảy ra khi lưu thánh thất. Vui lòng thử lại!');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (
-      window.confirm(
-        "Bạn có chắc chắn muốn xóa Thánh thất này không? Hành động này không thể hoàn tác."
-      )
-    ) {
+  const handleDeleteClick = (id: string, name: string) => {
+    setDeleteConfirm({ open: true, id, name });
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const headers: any = {
+        "Content-Type": "application/json"
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/temples/${id}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Hiển thị message từ backend
+        showError(data.message || 'Có lỗi xảy ra khi xóa thánh thất');
+        return;
+      }
+
       setTemples((prev) => prev.filter((t) => t._id !== id));
+      success('Đã xóa thánh thất thành công');
+    } catch (err) {
+      console.error("Error deleting temple:", err);
+      showError('Có lỗi xảy ra khi xóa thánh thất. Vui lòng thử lại!');
     }
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteConfirm.id;
+    setDeleteConfirm({ open: false, id: '', name: '' });
+    await handleDelete(id);
   };
 
   return (
@@ -175,7 +276,7 @@ export const TemplePage = () => {
                     <Icons.Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(temple._id)}
+                    onClick={() => handleDeleteClick(temple._id, temple.name)}
                     className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"
                     title="Xóa"
                   >
@@ -199,7 +300,7 @@ export const TemplePage = () => {
             className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
             onClick={() => setIsModalOpen(false)}
           ></div>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingId ? "Chỉnh sửa Thánh Thất" : "Thêm Thánh Thất Mới"}
@@ -209,7 +310,7 @@ export const TemplePage = () => {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto">
               <form
                 id="create-temple-form"
                 onSubmit={handleSave}
@@ -278,17 +379,24 @@ export const TemplePage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Ngày thành lập
                   </label>
-                  <input
-                    name="establishedDate"
-                    type="date"
-                    value={
-                      formData.establishedDate
-                        ? new Date(formData.establishedDate)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
+                  <DatePicker
+                    selected={formData.establishedDate
+                      ? (typeof formData.establishedDate === 'object'
+                        ? formData.establishedDate as Date
+                        : new Date(formData.establishedDate))
+                      : null}
+                    onChange={(date: Date | null) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        establishedDate: date as any
+                      }))
                     }
-                    onChange={handleInputChange}
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText="dd/MM/yyyy"
+                    showYearDropdown
+                    showMonthDropdown
+                    dropdownMode="select"
+                    maxDate={new Date()}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
@@ -330,6 +438,40 @@ export const TemplePage = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm.open && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                  <div className="flex items-center mb-4">
+                      <Icons.AlertTriangle className="w-6 h-6 text-red-600 mr-2" />
+                      <h3 className="text-lg font-semibold">Xác nhận xóa</h3>
+                  </div>
+                  <p className="text-gray-700 mb-2">
+                      Bạn có chắc muốn xóa thánh thất "{deleteConfirm.name}"?
+                  </p>
+                  <p className="text-gray-500 text-sm mb-4">
+                      Hành động này không thể hoàn tác.
+                  </p>
+                  <div className="flex justify-end gap-3">
+                      <button
+                          onClick={() => setDeleteConfirm({ open: false, id: '', name: '' })}
+                          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
+                      >
+                          Hủy
+                      </button>
+                      <button
+                          onClick={confirmDelete}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                      >
+                          Xóa
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };

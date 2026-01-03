@@ -1,17 +1,106 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as Icons from "../components/Icons";
-import { MOCK_EVENTS, MOCK_PERSONALS } from "../constants";
-import { EventStatus, type Event } from "../types";
+import { EventStatus, EventStatusLabel, type Event, type Personal } from "../types";
+import { eventService } from "../services/eventService";
+import { useAuth } from "../context/AuthContext";
 
 export const PublicEventsPage = () => {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<"All" | "Upcoming" | "Past">("Upcoming");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [personals, setPersonals] = useState<Personal[]>([]);
+  const [myRegistrations, setMyRegistrations] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredEvents = MOCK_EVENTS.filter((event) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Update event status (public endpoint)
+        try {
+          await eventService.updateAllStatus();
+        } catch (err) {
+          console.error("Failed to update event status:", err);
+        }
+        
+        const token = localStorage.getItem("accessToken");
+
+        // Fetch events (public)
+        try {
+          const eventsRes = await eventService.getAll();
+          setEvents(eventsRes.data || []);
+        } catch (err: any) {
+          console.error("Failed to fetch events:", err);
+          // Don't show error for public events fetch
+          if (err.response?.status !== 403) {
+            setError("Không thể tải danh sách sự kiện");
+          }
+        }
+
+        // Fetch personals only if authenticated
+        if (token && user) {
+          try {
+            const headers: HeadersInit = { Authorization: `Bearer ${token}` };
+            const personalsRes = await fetch("http://localhost:3000/api/personals", { headers });
+            
+            if (personalsRes.ok) {
+              const personalsData = await personalsRes.json();
+              setPersonals(personalsData.data || personalsData || []);
+            } else if (personalsRes.status === 403 || personalsRes.status === 401) {
+              // Token expired, clear it
+              console.warn("Token expired, clearing localStorage");
+              localStorage.removeItem("accessToken");
+            } else {
+              console.warn("Failed to fetch personals:", personalsRes.status);
+            }
+          } catch (err) {
+            console.error("Error fetching personals:", err);
+          }
+        }
+
+        // Fetch user's registrations if logged in
+        if (user && token) {
+          try {
+            const registrationsRes = await eventService.getUserRegistrations();
+            console.log("Registrations response:", registrationsRes);
+            
+            // Handle response structure - backend returns { data: [...] } and axios wraps it
+            const registrations = registrationsRes.data?.data || registrationsRes.data || [];
+            
+            if (Array.isArray(registrations)) {
+              const registeredEventIds = new Set(
+                registrations.map((reg: any) => reg.eventId._id || reg.eventId)
+              );
+              setMyRegistrations(registeredEventIds);
+            }
+          } catch (err: any) {
+            console.error("Failed to fetch registrations:", err);
+            // Don't show error for registration fetch failure
+            if (err.response?.status === 403 || err.response?.status === 401) {
+              console.warn("Auth required for registrations, skipping");
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setError(err instanceof Error ? err.message : "Đã xảy ra lỗi không mong muốn");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
+  const filteredEvents = events.filter((event) => {
     // 1. Filter by Status Tab
     let statusMatch = true;
     if (filter === "Upcoming")
@@ -22,10 +111,11 @@ export const PublicEventsPage = () => {
 
     // 2. Filter by Search Term
     const searchLower = searchTerm.toLowerCase();
+    const eventTypeName = typeof event.eventType === 'object' && event.eventType !== null ? (event.eventType as { name: string }).name : event.eventType;
     const searchMatch =
       event.name.toLowerCase().includes(searchLower) ||
       event.location.toLowerCase().includes(searchLower) ||
-      event.eventType.toLowerCase().includes(searchLower);
+      (eventTypeName || '').toLowerCase().includes(searchLower);
 
     return statusMatch && searchMatch;
   });
@@ -33,15 +123,43 @@ export const PublicEventsPage = () => {
   const handleOpenEvent = (event: Event) => {
     setSelectedEvent(event);
     setRegisterSuccess(false);
+    setRegisterError(null);
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    if (!user) {
+      setRegisterError("Vui lòng đăng nhập để đăng ký sự kiện");
+      return;
+    }
+
+    if (!selectedEvent) return;
+
     setIsRegistering(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsRegistering(false);
+    setRegisterError(null);
+
+    try {
+      await eventService.register(selectedEvent._id);
       setRegisterSuccess(true);
-    }, 1500);
+      setMyRegistrations((prev) => new Set([...prev, selectedEvent._id]));
+      
+      // Cập nhật số lượng người tham gia
+      setEvents((prevEvents) =>
+        prevEvents.map((e) =>
+          e._id === selectedEvent._id
+            ? { ...e, participantsCount: (e.participantsCount || 0) + 1 }
+            : e
+        )
+      );
+      setSelectedEvent((prev) =>
+        prev ? { ...prev, participantsCount: (prev.participantsCount || 0) + 1 } : null
+      );
+    } catch (err: any) {
+      setRegisterError(
+        err.response?.data?.message || "Không thể đăng ký. Vui lòng thử lại."
+      );
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -60,6 +178,13 @@ export const PublicEventsPage = () => {
       </div>
 
       <div className="container mx-auto px-6 md:px-12 py-12">
+        {/* Error Display */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
+            <p className="font-bold">Lỗi: {error}</p>
+          </div>
+        )}
+
         {/* Search & Filter Section */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
           {/* Search Box */}
@@ -100,7 +225,12 @@ export const PublicEventsPage = () => {
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEvents.length > 0 ? (
+          {loading ? (
+            <div className="col-span-full text-center py-20">
+              <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-gray-600">Đang tải sự kiện...</p>
+            </div>
+          ) : filteredEvents.length > 0 ? (
             filteredEvents.map((event) => (
               <div
                 key={event._id}
@@ -126,7 +256,7 @@ export const PublicEventsPage = () => {
                           : "bg-blue-100 text-blue-800"
                       }`}
                     >
-                      {event.status}
+                      {EventStatusLabel[event.status as EventStatus]}
                     </span>
                   </div>
                 </div>
@@ -144,7 +274,7 @@ export const PublicEventsPage = () => {
                     </div>
                     <div>
                       <div className="text-xs font-bold text-amber-600 uppercase mb-1">
-                        {event.eventType}
+                        {typeof event.eventType === 'object' && event.eventType !== null ? (event.eventType as { name: string }).name : event.eventType}
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
                         {event.name}
@@ -220,7 +350,7 @@ export const PublicEventsPage = () => {
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8">
                 <span className="inline-block px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded mb-3 uppercase tracking-wider">
-                  {selectedEvent.eventType}
+                  {typeof selectedEvent.eventType === 'object' && selectedEvent.eventType !== null ? (selectedEvent.eventType as { name: string }).name : selectedEvent.eventType}
                 </span>
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
                   {selectedEvent.name}
@@ -269,45 +399,28 @@ export const PublicEventsPage = () => {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
                     Lịch trình dự kiến
                   </h3>
-                  <ul className="space-y-4 mb-8">
-                    <li className="flex gap-4">
-                      <div className="w-20 font-bold text-blue-600 text-sm text-right shrink-0">
-                        {new Date(selectedEvent.startTime).toLocaleTimeString(
-                          [],
-                          { hour: "2-digit", minute: "2-digit" }
-                        )}
-                      </div>
-                      <div className="pb-4 border-l-2 border-blue-100 pl-6 relative">
-                        <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
-                        <p className="font-bold text-gray-800">
-                          Khai mạc & Tiếp đón
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Đón tiếp quý đại biểu và đạo hữu.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="w-20 font-bold text-blue-600 text-sm text-right shrink-0">
-                        {new Date(
-                          new Date(selectedEvent.startTime).getTime() +
-                            60 * 60 * 1000
-                        ).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                      <div className="pb-4 border-l-2 border-blue-100 pl-6 relative">
-                        <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
-                        <p className="font-bold text-gray-800">
-                          Phần Lễ chính thức
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Dâng hương và cầu nguyện.
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
+                  {(selectedEvent as any).schedule && (selectedEvent as any).schedule.length > 0 ? (
+                    <ul className="space-y-4 mb-8">
+                      {(selectedEvent as any).schedule.map((item: any, index: number) => (
+                        <li key={index} className="flex gap-4">
+                          <div className="w-20 font-bold text-blue-600 text-sm text-right shrink-0">
+                            {item.time || 'TBA'}
+                          </div>
+                          <div className="pb-4 border-l-2 border-blue-100 pl-6 relative">
+                            <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-blue-500"></div>
+                            <p className="font-bold text-gray-800">
+                              {item.activity || 'Hoạt động chưa xác định'}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg mb-8">
+                      <Icons.Clock className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                      <p className="text-sm text-gray-500">Lịch trình sẽ được cập nhật sau.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sidebar Info */}
@@ -319,9 +432,10 @@ export const PublicEventsPage = () => {
                     </h4>
 
                     {(() => {
-                      const organizer = MOCK_PERSONALS.find(
-                        (p) => p._id === selectedEvent.organizerId
-                      );
+                      const organizerId = typeof selectedEvent.organizer === 'object' && selectedEvent.organizer !== null
+                        ? (selectedEvent.organizer as any)._id
+                        : selectedEvent.organizer;
+                      const organizer = personals.find((p) => p._id === organizerId);
                       return organizer ? (
                         <div className="flex items-center mb-6">
                           <img
@@ -334,7 +448,7 @@ export const PublicEventsPage = () => {
                               {organizer.fullname}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {organizer.position}
+                              {organizer.position || 'Người phụ trách'}
                             </p>
                           </div>
                         </div>
@@ -344,19 +458,55 @@ export const PublicEventsPage = () => {
                     <div className="space-y-3 mb-6">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Trạng thái:</span>
-                        <span className="font-medium text-green-600">
-                          {selectedEvent.status}
+                        <span className={`font-medium ${
+                          selectedEvent.status === EventStatus.UPCOMING ? 'text-green-600' :
+                          selectedEvent.status === EventStatus.ONGOING ? 'text-blue-600' :
+                          'text-gray-600'
+                        }`}>
+                          {EventStatusLabel[selectedEvent.status as EventStatus]}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Số lượng:</span>
+                        <span className="text-gray-500">Đã đăng ký:</span>
                         <span className="font-medium">
-                          {selectedEvent.participantsCount} người
+                          {selectedEvent.participantsCount || 0} người
                         </span>
                       </div>
+                      {(selectedEvent as any).members && (selectedEvent as any).members.length > 0 && (
+                        <div className="text-sm">
+                          <span className="text-gray-500 block mb-2">Ban điều hành:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {(selectedEvent as any).members.slice(0, 3).map((member: any, idx: number) => {
+                              const memberId = typeof member === 'object' ? member._id : member;
+                              const memberInfo = personals.find(p => p._id === memberId);
+                              return memberInfo ? (
+                                <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+                                  {memberInfo.fullname}
+                                </span>
+                              ) : null;
+                            })}
+                            {(selectedEvent as any).members.length > 3 && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                +{(selectedEvent as any).members.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {!registerSuccess ? (
+                    {registerError && (
+                      <div className="bg-red-100 text-red-700 p-3 rounded-lg text-center mb-3 text-sm">
+                        {registerError}
+                      </div>
+                    )}
+
+                    {myRegistrations.has(selectedEvent._id) && !registerSuccess ? (
+                      <div className="bg-blue-100 text-blue-700 p-4 rounded-lg text-center">
+                        <Icons.CheckCircle className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                        <p className="font-bold">Bạn đã đăng ký sự kiện này</p>
+                      </div>
+                    ) : !registerSuccess ? (
                       <button
                         onClick={handleRegister}
                         disabled={
@@ -388,7 +538,7 @@ export const PublicEventsPage = () => {
                         <Icons.CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600" />
                         <p className="font-bold">Đăng ký thành công!</p>
                         <p className="text-xs mt-1">
-                          BTC sẽ gửi thông tin chi tiết qua email.
+                          BTC sẽ gửi thông tin chi tiết qua số điện thoại.
                         </p>
                       </div>
                     )}

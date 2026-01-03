@@ -1,26 +1,89 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import * as Icons from "@/components/Icons";
-import { MOCK_PERSONALS, MOCK_TEMPLES, MOCK_DEPARTMENTS } from "@/constants";
 import {
   UserStatus,
   Gender,
   type Personal,
   type TempleHistoryEntry,
 } from "@/types";
+import { useToast } from "@/hooks/useToast";
+import { ToastContainer } from "@/components/Toast";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export const PersonalPage = () => {
-  // 1. Convert Mock Data to State to allow UI updates
-  const [personals, setPersonals] = useState<Personal[]>(MOCK_PERSONALS);
+  const { toasts, removeToast, success, error, warning } = useToast();
+  const [personals, setPersonals] = useState<Personal[]>([]);
+  const [temples, setTemples] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // 2. Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPerson, setCurrentPerson] = useState<Personal | null>(null);
   const [formData, setFormData] = useState<Partial<Personal>>({});
   const [isSaving, setIsSaving] = useState(false);
-
-  // New History Item State
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [newHistory, setNewHistory] = useState<Partial<TempleHistoryEntry>>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+
+  // Get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+  };
+
+  // Fetch all data
+  useEffect(() => {
+    fetchPersonals();
+    fetchTemples();
+    fetchDepartments();
+  }, []);
+
+  const fetchPersonals = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/personals`);
+      if (!response.ok) throw new Error('Không thể tải danh sách');
+      const result = await response.json();
+      setPersonals(result.data || result || []);
+      setFetchError(null);
+    } catch (err) {
+      console.error('Error fetching personals:', err);
+      setFetchError('Lỗi tải dữ liệu nhân sự');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchTemples = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/temples`);
+      if (!response.ok) throw new Error('Không thể tải danh sách');
+      const result = await response.json();
+      setTemples(result.data || result || []);
+    } catch (err) {
+      console.error('Error fetching temples:', err);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/departments`);
+      if (!response.ok) throw new Error('Không thể tải danh sách');
+      const result = await response.json();
+      setDepartments(result.data || result || []);
+    } catch (err) {
+      console.error('Error fetching departments:', err);
+    }
+  };
 
   // Filter logic
   const filteredData = personals.filter((p) =>
@@ -36,18 +99,51 @@ export const PersonalPage = () => {
       gender: Gender.MALE,
       templeHistory: [],
     });
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setModalError(null);
     setIsModalOpen(true);
   };
 
   const handleEditClick = (person: Personal) => {
     setCurrentPerson(person);
-    setFormData({ ...person }); // Clone data to form
+    // Clone data và bao gồm cả userPhone nếu có
+    setFormData({ 
+      ...person,
+      phonenumber: (person as any).userPhone || person.phonenumber || ""
+    });
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setModalError(null);
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = (id: string) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa tín đồ này không?")) {
+  const handleDeleteClick = (id: string, name: string) => {
+    setDeleteConfirm({ open: true, id, name });
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteConfirm.id;
+    setDeleteConfirm({ open: false, id: '', name: '' });
+    
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/personals/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Không thể xóa tín đồ');
+      }
+      
       setPersonals((prev) => prev.filter((p) => p._id !== id));
+      success('Xóa tín đồ thành công!');
+    } catch (err) {
+      console.error('Error deleting personal:', err);
+      error('Lỗi khi xóa tín đồ. Vui lòng thử lại.');
     }
   };
 
@@ -84,38 +180,125 @@ export const PersonalPage = () => {
     }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      error('Vui lòng chọn file ảnh hợp lệ (JPG, PNG, GIF, WEBP)');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      error('Kích thước ảnh không được vượt quá 10MB');
+      return;
+    }
+
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setModalError(null);
 
-    // Simulate API Call
-    setTimeout(() => {
+    try {
+      const token = getAuthToken();
+      let avatarUrl = formData.avatarUrl;
+
+      // Upload avatar if new file selected
+      if (avatarFile && currentPerson) {
+        setUploadingAvatar(true);
+        const formDataUpload = new FormData();
+        formDataUpload.append('avatar', avatarFile);
+
+        const uploadResponse = await fetch(`${API_BASE_URL}/personals/avatar`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formDataUpload,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          avatarUrl = uploadResult.avatarUrl || uploadResult.data?.avatarUrl;
+        }
+        setUploadingAvatar(false);
+      }
+
+      const payload = {
+        ...formData,
+        avatarUrl,
+        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
+      };
+
       if (currentPerson) {
-        // Edit mode
+        // Edit mode - PUT
+        const response = await fetch(`${API_BASE_URL}/personals/${currentPerson._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Không thể cập nhật thông tin');
+        }
+
+        const updatedPerson = await response.json();
         setPersonals((prev) =>
           prev.map((p) =>
             p._id === currentPerson._id
-              ? ({ ...p, ...formData } as Personal)
+              ? (updatedPerson.data || updatedPerson)
               : p
           )
         );
+        success('Cập nhật thông tin thành công!');
       } else {
-        // Add mode
-        const newPerson: Personal = {
-          ...formData,
-          _id: Date.now().toString(),
-          status: formData.status || UserStatus.ACTIVE,
-          fullname: formData.fullname || "New Member",
-          gender: formData.gender || Gender.OTHER,
-          templeHistory: formData.templeHistory || [],
-        } as Personal;
-        setPersonals((prev) => [newPerson, ...prev]);
+        // Add mode - POST
+        const response = await fetch(`${API_BASE_URL}/personals`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Không thể thêm tín đồ mới');
+        }
+
+        const newPerson = await response.json();
+        setPersonals((prev) => [newPerson.data || newPerson, ...prev]);
+        success('Thêm tín đồ mới thành công!');
       }
 
-      setIsSaving(false);
       setIsModalOpen(false);
       setCurrentPerson(null);
-    }, 800);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    } catch (err) {
+      console.error('Error saving personal:', err);
+      setModalError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu dữ liệu');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -196,8 +379,10 @@ export const PersonalPage = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredData.map((person) => {
-                const temple = MOCK_TEMPLES.find(
-                  (t) => t._id === person.currentTempleId
+                // Find the current temple from temple history (most recent entry without endDate)
+                const currentHistory = person.templeHistory?.find(h => !h.endDate);
+                const temple = temples.find(
+                  (t) => t._id === currentHistory?.templeId
                 );
 
                 return (
@@ -226,7 +411,7 @@ export const PersonalPage = () => {
                           </div>
                           <div className="text-xs text-gray-500 flex items-center mt-0.5">
                             <Icons.Phone className="w-3 h-3 mr-1" />
-                            {person.phoneNumber || "---"}
+                            {(person as any).userPhone || person.phonenumber || "---"}
                           </div>
                         </div>
                       </div>
@@ -292,7 +477,7 @@ export const PersonalPage = () => {
                           <Icons.Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(person._id)}
+                          onClick={() => handleDeleteClick(person._id, person.fullname)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Xóa"
                         >
@@ -339,16 +524,35 @@ export const PersonalPage = () => {
 
             {/* Modal Body (Form) */}
             <div className="p-6 overflow-y-auto">
+              {modalError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  <div className="flex items-start">
+                    <Icons.AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>{modalError}</span>
+                  </div>
+                </div>
+              )}
               <form
                 id="edit-form"
                 onSubmit={handleSave}
                 className="grid grid-cols-1 md:grid-cols-2 gap-6"
               >
                 {/* Avatar Preview */}
-                <div className="md:col-span-2 flex justify-center mb-4">
-                  <div className="relative group cursor-pointer">
+                <div className="md:col-span-2 flex flex-col items-center mb-4">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                  />
+                  <div 
+                    className="relative group cursor-pointer"
+                    onClick={handleAvatarClick}
+                  >
                     <img
                       src={
+                        avatarPreview ||
                         formData.avatarUrl ||
                         `https://ui-avatars.com/api/?name=${
                           formData.fullname || "U"
@@ -361,11 +565,18 @@ export const PersonalPage = () => {
                       <Icons.Camera className="w-6 h-6 text-white" />
                     </div>
                   </div>
+                  {uploadingAvatar && (
+                    <p className="text-xs text-blue-600 mt-2">Đang tải ảnh lên...</p>
+                  )}
+                  {avatarFile && (
+                    <p className="text-xs text-green-600 mt-2">Ảnh mới đã chọn: {avatarFile.name}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">Click để thay đổi ảnh đại diện</p>
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Họ và tên Thánh
+                    Họ và tên Thánh <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -373,7 +584,8 @@ export const PersonalPage = () => {
                     required
                     value={formData.fullname || ""}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    placeholder="Nhập họ và tên"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
 
@@ -383,10 +595,25 @@ export const PersonalPage = () => {
                   </label>
                   <input
                     type="text"
-                    name="phoneNumber"
-                    value={formData.phoneNumber || ""}
+                    name="phonenumber"
+                    value={formData.phonenumber || ""}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    placeholder="Nhập số điện thoại"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email || ""}
+                    onChange={handleInputChange}
+                    placeholder="ten@gmail.com"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
 
@@ -394,18 +621,18 @@ export const PersonalPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ngày sinh
                   </label>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={
-                      formData.dateOfBirth
-                        ? new Date(formData.dateOfBirth)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
+                  <DatePicker
+                    selected={formData.dateOfBirth ? new Date(formData.dateOfBirth) : null}
+                    onChange={(date: Date | null) =>
+                      setFormData((prev) => ({ ...prev, dateOfBirth: date ? date.toISOString() : undefined }))
                     }
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText="dd/MM/yyyy"
+                    showYearDropdown
+                    showMonthDropdown
+                    dropdownMode="select"
+                    maxDate={new Date()}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
 
@@ -417,12 +644,47 @@ export const PersonalPage = () => {
                     name="gender"
                     value={formData.gender || Gender.OTHER}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all"
                   >
                     <option value={Gender.MALE}>Nam</option>
                     <option value={Gender.FEMALE}>Nữ</option>
                     <option value={Gender.OTHER}>Khác</option>
                   </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Địa chỉ hiện tại
+                  </label>
+                  <textarea
+                    name="address"
+                    rows={3}
+                    value={formData.address || ""}
+                    onChange={handleInputChange}
+                    placeholder="Nhập địa chỉ..."
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all"
+                  ></textarea>
+                </div>
+
+                <div className="md:col-span-2 border-t border-gray-100 pt-6 mt-2">
+                  <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wider flex items-center">
+                    <Icons.Briefcase className="w-4 h-4 mr-2 text-blue-600" />
+                    Thông tin Tổ chức
+                  </h4>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chức vụ
+                  </label>
+                  <input
+                    type="text"
+                    name="position"
+                    value={formData.position || ""}
+                    onChange={handleInputChange}
+                    placeholder="VD: Lễ Sanh, Hộ Pháp..."
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
                 </div>
 
                 <div>
@@ -433,7 +695,7 @@ export const PersonalPage = () => {
                     name="status"
                     value={formData.status || UserStatus.ACTIVE}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all"
                   >
                     <option value={UserStatus.ACTIVE}>Đang hoạt động</option>
                     <option value={UserStatus.ON_LEAVE}>Tạm nghỉ</option>
@@ -441,57 +703,18 @@ export const PersonalPage = () => {
                   </select>
                 </div>
 
-                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
-                  <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wider">
-                    Thông tin Tổ chức
-                  </h4>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chức vụ / Phẩm vị
-                  </label>
-                  <input
-                    type="text"
-                    name="position"
-                    value={formData.position || ""}
-                    onChange={handleInputChange}
-                    placeholder="VD: Lễ Sanh, Tín đồ..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thánh Thất sinh hoạt
-                  </label>
-                  <select
-                    name="currentTempleId"
-                    value={formData.currentTempleId || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                  >
-                    <option value="">-- Chọn Thánh Thất --</option>
-                    {MOCK_TEMPLES.map((t) => (
-                      <option key={t._id} value={t._id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thuộc Ban / Bộ phận
+                    Thuộc Ban
                   </label>
                   <select
-                    name="departmentId"
-                    value={formData.departmentId || ""}
+                    name="department"
+                    value={formData.department || ""}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition-all"
                   >
                     <option value="">-- Không thuộc ban nào --</option>
-                    {MOCK_DEPARTMENTS.map((d) => (
+                    {departments.map((d) => (
                       <option key={d._id} value={d._id}>
                         {d.name}
                       </option>
@@ -499,29 +722,17 @@ export const PersonalPage = () => {
                   </select>
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ghi chú
-                  </label>
-                  <textarea
-                    name="note"
-                    rows={2}
-                    value={formData.note || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  ></textarea>
-                </div>
-
                 {/* TEMPLE HISTORY SECTION */}
-                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
-                  <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wider flex items-center justify-between">
+                <div className="md:col-span-2 border-t border-gray-100 pt-6 mt-4">
+                  <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wider flex items-center">
+                    <Icons.Calendar className="w-4 h-4 mr-2 text-blue-600" />
                     Lịch sử sinh hoạt
                   </h4>
 
                   {/* List of existing history */}
                   <div className="space-y-3 mb-4">
                     {formData.templeHistory?.map((history, idx) => {
-                      const temple = MOCK_TEMPLES.find(
+                      const temple = temples.find(
                         (t) => t._id === history.templeId
                       );
                       return (
@@ -576,7 +787,7 @@ export const PersonalPage = () => {
                         }
                       >
                         <option value="">-- Chọn Thánh Thất --</option>
-                        {MOCK_TEMPLES.map((t) => (
+                        {temples.map((t) => (
                           <option key={t._id} value={t._id}>
                             {t.name}
                           </option>
@@ -657,6 +868,52 @@ export const PersonalPage = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            onClick={() => setDeleteConfirm({ open: false, id: '', name: '' })}
+          ></div>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative animate-in zoom-in-95 duration-200">
+            {/* Icon and Title */}
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Icons.AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận xóa tín đồ</h3>
+              <p className="text-gray-600 mb-1">
+                Bạn có chắc chắn muốn xóa tín đồ
+              </p>
+              <p className="text-lg font-bold text-red-600 mb-4">{deleteConfirm.name}?</p>
+              <p className="text-sm text-gray-500">
+                Hành động này không thể hoàn tác.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3 rounded-b-2xl">
+              <button
+                onClick={() => setDeleteConfirm({ open: false, id: '', name: '' })}
+                className="flex-1 px-4 py-2.5 rounded-lg text-gray-700 font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md transition-all flex items-center justify-center"
+              >
+                <Icons.Trash className="w-4 h-4 mr-2" />
+                Xóa ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };

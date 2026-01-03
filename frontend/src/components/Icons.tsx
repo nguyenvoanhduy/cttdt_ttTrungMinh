@@ -1,4 +1,8 @@
+
+
+// Fix: Added Heart icon to imports and exports to fix the "Property 'Heart' does not exist" error in pages/AboutPage.tsx
 import {
+  AlertCircle,
   LayoutDashboard,
   BarChart3,
   Users,
@@ -6,6 +10,7 @@ import {
   Users2,
   Calendar,
   Library,
+  FolderPlus,
   Bell,
   MessageSquare,
   Shield,
@@ -58,9 +63,16 @@ import {
   LogIn,
   Image,
   FileSpreadsheet,
-} from "lucide-react";
+  Link,
+  Heart,
+  Book,
+  RefreshCw,
+  Trash2,
+  Activity
+} from 'lucide-react';
 
 export {
+  AlertCircle,
   LayoutDashboard,
   BarChart3,
   Users,
@@ -68,6 +80,7 @@ export {
   Users2,
   Calendar,
   Library,
+  FolderPlus,
   Bell,
   MessageSquare,
   Shield,
@@ -120,4 +133,10 @@ export {
   LogIn,
   Image,
   FileSpreadsheet,
+  Link,
+  Heart,
+  Book,
+  RefreshCw,
+  Trash2,
+  Activity
 };

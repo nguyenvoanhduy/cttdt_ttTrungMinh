@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 import {
   createContext,
   useContext,
@@ -11,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   personal: Personal | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (phonenumber: string, password: string) => Promise<boolean>;
   register: (data: {
     fullname: string;
@@ -18,7 +21,7 @@ interface AuthContextType {
     password: string;
   }) => Promise<boolean>;
   logout: () => void;
-  updatePersonal: (data: Partial<Personal>) => void;
+  updatePersonal: (data: Partial<Personal>) => Promise<void>;
   uploadAvatar: (data: FormData) => Promise<void>;
 }
 
@@ -27,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
   const [user, setUser] = useState<User | null>(null);
   const [personal, setPersonal] = useState<Personal | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchMe();
@@ -96,9 +100,29 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     }
   };
 
-  const updatePersonal = (data: Partial<Personal>) => {
-    if (personal) {
-      setPersonal({ ...personal, ...data });
+  const updatePersonal = async (data: Partial<Personal>) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !personal) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:3000/api/personals/${personal._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (res.ok) {
+        const updatedPersonal = await res.json();
+        setPersonal(updatedPersonal);
+      }
+    } catch (err) {
+      console.error("Update personal error:", err);
     }
   };
 
@@ -106,23 +130,36 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    const res = await fetch("http://localhost:3000/api/personal/avatar", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+    try {
+      const res = await fetch("http://localhost:3000/api/personals/avatar", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-    if (!res.ok) throw new Error("Upload avatar failed");
+      if (!res.ok) {
+        throw new Error("Upload avatar failed");
+      }
 
-    const data = await res.json();
-    updatePersonal({ avatarUrl: data.avatarUrl });
+      const data = await res.json();
+      if (personal) {
+        setPersonal({ ...personal, avatarUrl: data.avatarUrl });
+      }
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      throw err;
+    }
   };
 
   const fetchMe = async () => {
     const token = localStorage.getItem("accessToken");
-    if (!token) return;
+    
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("http://localhost:3000/api/auth/me", {
@@ -132,13 +169,26 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
         credentials: "include",
       });
 
-      const data = await res.json();
-      if (!res.ok) return;
+      if (!res.ok) {
+        // Token không hợp lệ hoặc hết hạn, xóa token
+        localStorage.removeItem("accessToken");
+        setUser(null);
+        setPersonal(null);
+        setIsLoading(false);
+        return;
+      }
 
+      const data = await res.json();
       setUser(data.user);
       setPersonal(data.personal);
     } catch (err) {
       console.error("Fetch me error", err);
+      // Xóa token nếu có lỗi
+      localStorage.removeItem("accessToken");
+      setUser(null);
+      setPersonal(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -148,6 +198,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
         user,
         personal,
         isAuthenticated: !!user,
+        isLoading,
         login,
         register,
         logout,

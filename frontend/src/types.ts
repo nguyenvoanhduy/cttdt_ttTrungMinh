@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 
 // --- ENUMS ---
@@ -20,11 +21,18 @@ export enum UserStatus {
 }
 
 export enum EventStatus {
-  UPCOMING = "Sắp diễn ra",
-  ONGOING = "Đang diễn ra",
-  COMPLETED = "Đã kết thúc",
-  CANCELLED = "Đã hủy",
+  UPCOMING = "UPCOMING",
+  ONGOING = "ONGOING",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
 }
+
+export const EventStatusLabel: Record<EventStatus, string> = {
+  [EventStatus.UPCOMING]: "Sắp diễn ra",
+  [EventStatus.ONGOING]: "Đang diễn ra",
+  [EventStatus.COMPLETED]: "Đã kết thúc",
+  [EventStatus.CANCELLED]: "Đã hủy",
+};
 
 export enum MediaType {
   IMAGE = "image",
@@ -60,39 +68,54 @@ export interface Personal {
   _id: string;
   fullname: string;
   email?: string;
-  phoneNumber?: string; // Ref to User
+  phonenumber?: string; // Ref to User
   gender: Gender;
   dateOfBirth?: string;
   address?: string;
-  departmentId?: string; // Ref to Department
+  department?: string; // Ref to Department
   position?: string;
   joinDate?: string;
   status: UserStatus;
   avatarUrl?: string;
   note?: string;
-  currentTempleId?: string; // Ref to Temple
   templeHistory?: TempleHistoryEntry[];
 }
 
 export interface User {
   _id: string;
-  phoneNumber: string;
+  phonenumber: string;
   role: UserRole;
   personalId: string; // Ref to Personal
   lastLogin?: string;
   createdAt: string;
 }
-
+export interface Album {
+  _id?: string;
+  id?: string;
+  title: string;
+  coverImage?: string;
+  date?: string;
+  count?: number;
+  isEvent?: boolean;
+  mediaFiles?: Array<{
+    _id?: string;
+    fileUrl: string;
+    caption?: string;
+    type?: string;
+  }>;
+  location?: string;
+  createdBy?: string;
+}
 export interface Event {
   _id: string;
   name: string;
   description?: string;
-  startTime: string;
-  endTime: string;
+  startTime: Date;
+  endTime: Date;
   location: string;
   bannerUrl?: string;
   eventType: string; // "Lễ lớn", "Hoạt động thanh niên"
-  organizerId?: string; // Ref to Personal
+  organizer?: string; // Ref to Personal
   status: EventStatus;
   participantsCount: number; // Virtual field for UI
 }
@@ -116,6 +139,7 @@ export interface Song {
   title: string;
   audioUrl: string;
   coverImageUrl?: string;
+  lyricsUrl?: string; // PDF/DOCX file containing song lyrics
   uploadedBy: string; // Ref User
   uploadDate: string;
   category: string;

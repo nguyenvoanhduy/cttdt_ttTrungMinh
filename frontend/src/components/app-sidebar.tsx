@@ -1,10 +1,7 @@
 import * as React from "react";
 import {
   IconDashboard,
-  IconHelp,
   IconInnerShadowTop,
-  IconSearch,
-  IconSettings,
   IconUser,
   IconGitFork,
   IconHome,
@@ -23,8 +20,6 @@ import { NavDocuments } from "@/components/nav-personals-organization";
 import { NavEvents } from "@/components/nav-events";
 import { NavSystem } from "@/components/nav-system";
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
-import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -46,23 +41,6 @@ const data = {
       title: "Bảng điều khiển",
       url: "/admin/dashboard",
       icon: IconDashboard,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Cài đặt",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Hỗ trợ",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Tìm kiếm",
-      url: "#",
-      icon: IconSearch,
     },
   ],
   personalsAndOrganization: [
@@ -148,10 +126,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavDocuments items={data.personalsAndOrganization} />
         <NavEvents items={data.eventsAndActivities} />
         <NavSystem items={data.system} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
       </SidebarFooter>
       <div className="px-6 py-4 border-t border-gray-100">
         <NavLink

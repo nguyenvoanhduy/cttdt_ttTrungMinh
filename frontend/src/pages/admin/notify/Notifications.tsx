@@ -1,86 +1,117 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import * as Icons from "@/components/Icons";
-
-// Mock data for sent history
-const INITIAL_HISTORY = [
-  {
-    id: "h1",
-    title: "Thông báo Lễ Vía Đức Chí Tôn",
-    content:
-      "Kính mời quý đạo hữu tham dự Đại lễ vào lúc 8h00 ngày 15/01 AL. Trang phục nghiêm trang.",
-    target: "Tất cả tín đồ",
-    channels: ["system", "zalo"],
-    sentAt: "2024-02-20T08:00:00",
-    status: "Đã gửi",
-    recipientsCount: 1205,
-  },
-  {
-    id: "h2",
-    title: "Nhắc nhở họp Ban Cai Quản",
-    content:
-      "Cuộc họp định kỳ tháng 3 sẽ diễn ra vào 14h00 Chủ Nhật tuần này tại phòng họp A.",
-    target: "Ban Cai Quản",
-    channels: ["system"],
-    sentAt: "2024-02-25T09:30:00",
-    status: "Đã gửi",
-    recipientsCount: 15,
-  },
-];
+import { useToast } from "@/hooks/useToast";
+import { ToastContainer } from "@/components/Toast";
+import { notificationService, type Notification } from "@/services/notificationService";
+import { departmentService, type Department } from "@/services/departmentService";
 
 export const Notifications = () => {
-  const [history, setHistory] = useState(INITIAL_HISTORY);
-  const [searchTerm, setSearchTerm] = useState(""); // Search State
+  const { toasts, removeToast, success, error: showError } = useToast();
+  const [history, setHistory] = useState<Notification[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form State
   const [formData, setFormData] = useState({
     title: "",
-    content: "",
-    target: "Tất cả tín đồ",
-    enableSystem: true,
-    enableZalo: false,
+    message: "",
+    targetGroups: ["Tất cả tín đồ"] as string[],
+    type: "system" as "event" | "system" | "chat" | "family" | "media" | "other",
   });
 
+  // Fetch notifications and departments on mount
+  useEffect(() => {
+    fetchNotifications();
+    fetchDepartments();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response: any = await notificationService.getAll();
+      const notifs = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setHistory(Array.isArray(notifs) ? notifs : []);
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Không thể tải danh sách thông báo");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await departmentService.getAll();
+      setDepartments(response.data?.data || []);
+    } catch (err: any) {
+      console.error("Không thể tải danh sách ban:", err);
+    }
+  };
+
+  const toggleTargetGroup = (group: string) => {
+    setFormData(prev => {
+      let newGroups = [...prev.targetGroups];
+      
+      if (group === "Tất cả tín đồ") {
+        // Nếu chọn "Tất cả", bỏ hết các group khác
+        newGroups = newGroups.includes(group) ? [] : [group];
+      } else {
+        // Nếu chọn ban cụ thể, bỏ "Tất cả"
+        newGroups = newGroups.filter(g => g !== "Tất cả tín đồ");
+        
+        if (newGroups.includes(group)) {
+          newGroups = newGroups.filter(g => g !== group);
+        } else {
+          newGroups.push(group);
+        }
+      }
+      
+      return { ...prev, targetGroups: newGroups };
+    });
+  };
+
   // Filter Logic
-  const filteredHistory = history.filter(
+  const filteredHistory = Array.isArray(history) ? history.filter(
     (item) =>
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      item.message.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.targetGroups.length === 0) {
+      showError("Vui lòng chọn ít nhất một đối tượng");
+      return;
+    }
+    
     setIsSending(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const newLog = {
-        id: Date.now().toString(),
+    try {
+      await notificationService.create({
         title: formData.title,
-        content: formData.content,
-        target: formData.target,
-        channels: [
-          ...(formData.enableSystem ? ["system"] : []),
-          ...(formData.enableZalo ? ["zalo"] : []),
-        ],
-        sentAt: new Date().toISOString(),
-        status: "Đã gửi",
-        recipientsCount: formData.target === "Tất cả tín đồ" ? 1200 : 50,
-      };
+        message: formData.message,
+        type: formData.type,
+        targetGroups: formData.targetGroups,
+      });
 
-      setHistory([newLog, ...history]);
-      setIsSending(false);
+      await fetchNotifications();
       setIsModalOpen(false);
       setFormData({
         title: "",
-        content: "",
-        target: "Tất cả tín đồ",
-        enableSystem: true,
-        enableZalo: false,
+        message: "",
+        targetGroups: ["Tất cả tín đồ"],
+        type: "system",
       });
-      alert("Đã gửi thông báo thành công!");
-    }, 1500);
+      success("Đã gửi thông báo thành công!");
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Không thể gửi thông báo");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -140,7 +171,7 @@ export const Notifications = () => {
                   Đối tượng
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Kênh gửi
+                  Loại thông báo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Thời gian
@@ -151,10 +182,17 @@ export const Notifications = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredHistory.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center">
+                    <div className="inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="mt-2 text-gray-500">Đang tải...</p>
+                  </td>
+                </tr>
+              ) : filteredHistory.length > 0 ? (
                 filteredHistory.map((item) => (
                   <tr
-                    key={item.id}
+                    key={item._id}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4">
@@ -162,45 +200,50 @@ export const Notifications = () => {
                         {item.title}
                       </p>
                       <p className="text-xs text-gray-500 line-clamp-1 max-w-md">
-                        {item.content}
+                        {item.message}
                       </p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                        <Icons.Users className="w-3 h-3 mr-1" />
-                        {item.target}
-                      </span>
-                      <p className="text-[10px] text-gray-400 mt-1 ml-1">
-                        {item.recipientsCount} người nhận
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {item.targetGroups && item.targetGroups.length > 0 ? (
+                          item.targetGroups.map((group, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                            >
+                              {group}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400">Không xác định</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {item.recipientCount || 0} người nhận
                       </p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex gap-2">
-                        {item.channels.includes("system") && (
-                          <span
-                            className="p-1.5 bg-gray-100 rounded text-gray-600"
-                            title="Hệ thống"
-                          >
-                            <Icons.Bell className="w-4 h-4" />
-                          </span>
-                        )}
-                        {item.channels.includes("zalo") && (
-                          <span
-                            className="p-1.5 bg-blue-50 rounded text-blue-600 border border-blue-100 font-bold text-xs flex items-center"
-                            title="Zalo"
-                          >
-                            Zalo
-                          </span>
-                        )}
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                          title={item.type}
+                        >
+                          <Icons.Bell className="w-3 h-3 mr-1" />
+                          {item.type === "system" ? "Hệ thống" : 
+                           item.type === "event" ? "Sự kiện" :
+                           item.type === "chat" ? "Trò chuyện" :
+                           item.type === "family" ? "Gia phả" :
+                           item.type === "media" ? "Thư viện" : "Khác"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(item.sentAt).toLocaleString("vi-VN")}
+                      {new Date(item.createdAt).toLocaleString("vi-VN")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                         <Icons.CheckCircle className="w-3 h-3 mr-1" />
-                        {item.status}
+                        Đã gửi
                       </span>
                     </td>
                   </tr>
@@ -250,25 +293,70 @@ export const Notifications = () => {
                 onSubmit={handleSend}
                 className="space-y-6"
               >
-                {/* Form contents ... (Unchanged) */}
-                {/* Target */}
+                {/* Target Groups - Multi-select with checkboxes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Gửi đến
+                    Gửi đến <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-2 p-4 border border-gray-300 rounded-lg bg-gray-50 max-h-48 overflow-y-auto">
+                    {/* Tất cả tín đồ */}
+                    <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={formData.targetGroups.includes("Tất cả tín đồ")}
+                        onChange={() => toggleTargetGroup("Tất cả tín đồ")}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Tất cả tín đồ</span>
+                    </label>
+                    
+                    {/* Gợi ý khi đã chọn "Tất cả" */}
+                    {formData.targetGroups.includes("Tất cả tín đồ") && (
+                      <div className="flex items-start gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                        <Icons.Info className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>Bỏ chọn "Tất cả tín đồ" để chọn các ban riêng lẻ</span>
+                      </div>
+                    )}
+                    
+                    {/* Các ban từ database */}
+                    {departments.map(dept => (
+                      <label key={dept._id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={formData.targetGroups.includes(dept.name)}
+                          onChange={() => toggleTargetGroup(dept.name)}
+                          disabled={formData.targetGroups.includes("Tất cả tín đồ")}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <span className={`text-sm ${formData.targetGroups.includes("Tất cả tín đồ") ? "text-gray-400" : "text-gray-700"}`}>
+                          {dept.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Đã chọn: {formData.targetGroups.length > 0 ? formData.targetGroups.join(", ") : "Chưa chọn"}
+                  </p>
+                </div>
+
+                {/* Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Loại thông báo
                   </label>
                   <select
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    value={formData.target}
+                    value={formData.type}
                     onChange={(e) =>
-                      setFormData({ ...formData, target: e.target.value })
+                      setFormData({ ...formData, type: e.target.value as any })
                     }
                   >
-                    <option value="Tất cả tín đồ">Tất cả tín đồ</option>
-                    <option value="Ban Cai Quản">Ban Cai Quản</option>
-                    <option value="Ban Nghi Lễ">Ban Nghi Lễ</option>
-                    <option value="Thanh Niên Đạo Đức">
-                      Thanh Niên Đạo Đức
-                    </option>
+                    <option value="system">Hệ thống</option>
+                    <option value="event">Sự kiện</option>
+                    <option value="chat">Trò chuyện</option>
+                    <option value="family">Gia phả</option>
+                    <option value="media">Thư viện</option>
+                    <option value="other">Khác</option>
                   </select>
                 </div>
 
@@ -298,103 +386,27 @@ export const Notifications = () => {
                     rows={5}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     placeholder="Nhập nội dung thông báo..."
-                    value={formData.content}
+                    value={formData.message}
                     onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
+                      setFormData({ ...formData, message: e.target.value })
                     }
                   ></textarea>
                   <p className="text-xs text-gray-400 mt-1 text-right">
-                    {formData.content.length} ký tự
+                    {formData.message.length} ký tự
                   </p>
                 </div>
 
-                {/* Channels */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Kênh gửi thông báo
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label
-                      className={`
-                                    flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all
-                                    ${
-                                      formData.enableSystem
-                                        ? "border-blue-500 bg-blue-50"
-                                        : "border-gray-200 hover:border-blue-200"
-                                    }
-                                `}
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                        checked={formData.enableSystem}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            enableSystem: e.target.checked,
-                          })
-                        }
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-bold text-gray-900 flex items-center">
-                          <Icons.Bell className="w-4 h-4 mr-1.5" /> Hệ thống
-                        </span>
-                        <span className="block text-xs text-gray-500 mt-0.5">
-                          Hiển thị trên ứng dụng/web
-                        </span>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`
-                                    flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all
-                                    ${
-                                      formData.enableZalo
-                                        ? "border-blue-600 bg-blue-50"
-                                        : "border-gray-200 hover:border-blue-300"
-                                    }
-                                `}
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                        checked={formData.enableZalo}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            enableZalo: e.target.checked,
-                          })
-                        }
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-bold text-blue-700 flex items-center">
-                          <span className="w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold mr-1.5">
-                            Z
-                          </span>
-                          Zalo OA
-                        </span>
-                        <span className="block text-xs text-gray-500 mt-0.5">
-                          Gửi tin nhắn trực tiếp qua Zalo
-                        </span>
-                      </div>
-                    </label>
+                {/* Info Note */}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start gap-3">
+                  <Icons.Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-bold mb-1">Lưu ý:</p>
+                    <p>
+                      Thông báo sẽ được hiển thị ngay trên website. 
+                      Người dùng sẽ nhận được thông báo trong phần chuông thông báo.
+                    </p>
                   </div>
                 </div>
-
-                {/* Zalo Preview (Mock) */}
-                {formData.enableZalo && (
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start gap-3">
-                    <Icons.Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-bold mb-1">Lưu ý khi gửi Zalo:</p>
-                      <p>
-                        Tin nhắn sẽ được gửi từ Zalo Official Account "Thánh
-                        Thất Trung Minh". Cước phí có thể áp dụng tùy theo chính
-                        sách của Zalo OA.
-                      </p>
-                    </div>
-                  </div>
-                )}
               </form>
             </div>
 
@@ -411,14 +423,11 @@ export const Notifications = () => {
               <button
                 type="submit"
                 form="notification-form"
-                disabled={
-                  isSending || (!formData.enableSystem && !formData.enableZalo)
-                }
+                disabled={isSending}
                 className={`
                             px-6 py-2.5 rounded-lg text-white font-bold shadow-lg transition-all flex items-center
                             ${
-                              isSending ||
-                              (!formData.enableSystem && !formData.enableZalo)
+                              isSending
                                 ? "bg-gray-400 cursor-not-allowed"
                                 : "bg-blue-600 hover:bg-blue-700 hover:shadow-blue-200 hover:-translate-y-0.5"
                             }
@@ -440,6 +449,8 @@ export const Notifications = () => {
           </div>
         </div>
       )}
+
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };
