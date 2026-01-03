@@ -75,8 +75,23 @@ io.on("connection", (socket) => {
 });
 
 // ===== MIDDLEWARE =====
+const allowedOrigins = [
+  "http://localhost:5173", // dev
+  "https://trungminh.nvaduy.id.vn",
+  "https://www.trungminh.nvaduy.id.vn",
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Cho phép Postman / server-to-server
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '50mb' }));
