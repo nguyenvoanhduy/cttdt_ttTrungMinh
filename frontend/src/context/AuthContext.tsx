@@ -9,6 +9,8 @@ import {
 } from "react";
 import { type User, type Personal } from "../types";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
 interface AuthContextType {
   user: User | null;
   personal: Personal | null;
@@ -41,7 +43,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     password: string
   ): Promise<boolean> => {
     try {
-      const res = await fetch("http://localhost:3000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -66,7 +68,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     password: string;
   }): Promise<boolean> => {
     try {
-      const res = await fetch("http://localhost:3000/api/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -87,7 +89,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:3000/api/auth/logout", {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -106,7 +108,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/personals/${personal._id}`,
+        `${API_BASE_URL}/personals/${personal._id}`,
         {
           method: "PUT",
           headers: {
@@ -131,7 +133,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     if (!token) return;
 
     try {
-      const res = await fetch("http://localhost:3000/api/personals/avatar", {
+      const res = await fetch(`${API_BASE_URL}/personals/avatar`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -162,7 +164,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/me", {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
