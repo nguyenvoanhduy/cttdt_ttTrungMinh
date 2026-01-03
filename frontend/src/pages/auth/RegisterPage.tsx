@@ -10,7 +10,6 @@ export const RegisterPage = () => {
     phoneNumber: "",
     password: "",
     confirmPassword: "",
-    agreeTerms: false,
   });
 
   const [error, setError] = useState("");
@@ -43,11 +42,6 @@ export const RegisterPage = () => {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp.");
-      return;
-    }
-
-    if (!formData.agreeTerms) {
-      setError("Bạn cần đồng ý với các quy định.");
       return;
     }
 
