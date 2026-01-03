@@ -35,7 +35,8 @@ export const UserProfilePage = () => {
     const fetchTemples = async () => {
       try {
         setTemplesLoading(true);
-        const res = await fetch("http://localhost:3000/api/temples");
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const res = await fetch(`${API_BASE_URL}/temples`);
         if (!res.ok) {
           throw new Error("Failed to fetch temples");
         }

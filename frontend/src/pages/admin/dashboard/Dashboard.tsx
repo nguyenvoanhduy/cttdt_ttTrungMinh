@@ -41,10 +41,11 @@ export const Dashboard = () => {
       try {
         const token = localStorage.getItem("accessToken");
         const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
         const [personalsRes, eventsRes] = await Promise.all([
-          fetch("http://localhost:3000/api/personals", { headers }),
-          fetch("http://localhost:3000/api/events", { headers }),
+          fetch(`${API_BASE_URL}/personals`, { headers }),
+          fetch(`${API_BASE_URL}/events`, { headers }),
         ]);
 
         if (personalsRes.ok) {

@@ -49,7 +49,8 @@ export const PublicEventsPage = () => {
         if (token && user) {
           try {
             const headers: HeadersInit = { Authorization: `Bearer ${token}` };
-            const personalsRes = await fetch("http://localhost:3000/api/personals", { headers });
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+            const personalsRes = await fetch(`${API_BASE_URL}/personals`, { headers });
             
             if (personalsRes.ok) {
               const personalsData = await personalsRes.json();

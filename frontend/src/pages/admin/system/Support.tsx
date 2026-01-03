@@ -5,11 +5,12 @@ import { io } from "socket.io-client";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/Toast";
 
-const socket = io("http://localhost:3000", {
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const SOCKET_URL = API_BASE_URL.replace('/api', '');
+
+const socket = io(SOCKET_URL, {
   transports: ["websocket"]
 });
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const API_URL = `${API_BASE_URL}/chat`;
 
 // Get auth token
@@ -69,7 +70,7 @@ export const Support = () => {
   useEffect(() => {
     const loadChatbotConfig = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/chatbot-config');
+        const response = await fetch(`${API_BASE_URL}/chatbot-config`);
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
@@ -88,7 +89,7 @@ export const Support = () => {
   const saveChatbotConfig = async () => {
     try {
       setIsSavingConfig(true);
-      const response = await fetch('http://localhost:3000/api/chatbot-config', {
+      const response = await fetch(`${API_BASE_URL}/chatbot-config`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(botConfig),

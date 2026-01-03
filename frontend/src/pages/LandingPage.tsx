@@ -13,7 +13,8 @@ export const LandingPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/events");
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${API_BASE_URL}/events`);
         if (!response.ok) throw new Error("Failed to fetch events");
         const data = await response.json();
         

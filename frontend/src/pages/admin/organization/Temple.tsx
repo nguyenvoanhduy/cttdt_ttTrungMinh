@@ -25,7 +25,8 @@ export const TemplePage = () => {
     const fetchTemples = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        const response = await fetch("http://localhost:3000/api/temples", { 
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${API_BASE_URL}/temples`, { 
           headers: token ? { Authorization: `Bearer ${token}` } : undefined 
         });
         if (!response.ok) throw new Error("Failed to fetch temples");
@@ -116,7 +117,8 @@ export const TemplePage = () => {
 
       if (editingId) {
         // Update existing
-        const response = await fetch(`http://localhost:3000/api/temples/${editingId}`, {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${API_BASE_URL}/temples/${editingId}`, {
           method: "PUT",
           headers,
           body: JSON.stringify(saveData),
@@ -130,7 +132,8 @@ export const TemplePage = () => {
         );
       } else {
         // Create new
-        const response = await fetch("http://localhost:3000/api/temples", {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${API_BASE_URL}/temples`, {
           method: "POST",
           headers,
           body: JSON.stringify(saveData),
@@ -168,7 +171,8 @@ export const TemplePage = () => {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`http://localhost:3000/api/temples/${id}`, {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${API_BASE_URL}/temples/${id}`, {
         method: "DELETE",
         headers,
       });
