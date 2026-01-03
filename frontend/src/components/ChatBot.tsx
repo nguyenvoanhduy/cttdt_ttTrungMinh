@@ -61,7 +61,7 @@ export const Chatbot = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/chatbot-config');
+        const response = await fetch(`${API_BASE_URL}/chatbot-config`);
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
