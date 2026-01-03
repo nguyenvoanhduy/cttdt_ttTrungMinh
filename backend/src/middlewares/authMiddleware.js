@@ -7,6 +7,9 @@ export const protectedRoute = async (req, res, next) => {
         const authHeader = req.headers.authorization;
         const token = authHeader && authHeader.split(' ')[1]; // bearer token
         
+        console.log('Auth Header:', authHeader ? authHeader.substring(0, 30) + '...' : 'NO AUTH HEADER');
+        console.log('Token:', token ? token.substring(0, 30) + '...' : 'NO TOKEN');
+        
         if (!token) {
             return res.status(401).json({ message: 'Không có token, truy cập bị từ chối' });
         }
@@ -14,7 +17,8 @@ export const protectedRoute = async (req, res, next) => {
         //Xác thực token hợp lệ
         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decoded) => {
             if (err) {
-                console.error('Lỗi xác thực token:', err);
+                console.error('Lỗi xác thực token:', err.message);
+                console.error('Token Secret exists:', !!process.env.ACCESS_TOKEN_SECRET);
                 return res.status(403).json({ message: 'Token không hợp lệ' });
             }
             

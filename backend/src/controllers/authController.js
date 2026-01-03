@@ -5,7 +5,7 @@ import Session from "../models/Session.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
-const ACCESS_TOKEN_TTL = "15m";
+const ACCESS_TOKEN_TTL = "60m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // 14 days in seconds
 
 export const register = async (req, res) => {
@@ -148,21 +148,23 @@ export const logOut = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    // populate để lấy fullname từ Personal
-    const user = await req.user.populate("personalId");
+    // populate để lấy toàn bộ thông tin Personal và temple history
+    const user = await req.user.populate({
+      path: "personalId",
+      populate: {
+        path: "templeHistory.templeId",
+        model: "Temple",
+        select: "name address"
+      }
+    });
 
     res.status(200).json({
       user: {
         _id: user._id,
         role: user.role,
-        phonenumber: user.phonenumber,
+        phoneNumber: user.phonenumber,
       },
-      personal: user.personalId
-        ? {
-            fullname: user.personalId.fullname,
-            avatarUrl: user.personalId.avatarUrl || null,
-          }
-        : null,
+      personal: user.personalId ? user.personalId : null,
     });
   } catch (error) {
     console.error("Lỗi getMe:", error);

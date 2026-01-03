@@ -6,7 +6,7 @@ const eventRegistrationSchema = new mongoose.Schema({
         ref: "Event", required: true 
     },
     userId: { 
-        ype: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.ObjectId, 
         ref: "User", required: true 
     },
     registrationDate: Date,

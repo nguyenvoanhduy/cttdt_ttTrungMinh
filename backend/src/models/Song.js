@@ -8,6 +8,9 @@ const songSchema = new mongoose.Schema({
     lyrics: {
         type: String
     },
+    lyricsUrl: {
+        type: String  // URL to PDF/DOCX file containing lyrics
+    },
     audioUrl: {
         type: String,
         required: true

@@ -8,9 +8,7 @@ const bookSchema = new mongoose.Schema({
     description: {
         type: String
     },
-    categories: { 
-        type: String, 
-        enum: ["Giáo lý"] },
+    categories: [{ type: String }],
     uploadedBy: { 
         type: mongoose.Schema.Types.ObjectId, ref: "User" 
     },
@@ -21,6 +19,9 @@ const bookSchema = new mongoose.Schema({
     fileUrl: {
         type: String,
         required: true
+    },
+    coverImageUrl: {
+        type: String
     },
     fileType: { 
         type: String, enum: ["pdf", "docx"] 

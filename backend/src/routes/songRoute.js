@@ -12,10 +12,10 @@ import { authorizeRoles } from "../middlewares/roleMiddleware.js";
 const router = express.Router();
 
 // CRUD endpoints với phân quyền
-router.post("/", protectedRoute, authorizeRoles(["Admin","Trưởng Ban"]), createSong);   // CREATE
+router.post("/", protectedRoute, authorizeRoles(["Admin","Trưởng Ban","Thành Viên"]), createSong);   // CREATE
 router.get("/", getSongs);                                                              // READ ALL
 router.get("/:id", getSongById);                                                        // READ ONE
-router.put("/:id", protectedRoute, authorizeRoles(["Admin","Trưởng Ban"]), updateSong); // UPDATE
-router.delete("/:id", protectedRoute, authorizeRoles(["Admin"]), deleteSong);           // DELETE
+router.put("/:id", protectedRoute, authorizeRoles(["Admin","Trưởng Ban","Thành Viên"]), updateSong); // UPDATE
+router.delete("/:id", protectedRoute, authorizeRoles(["Admin","Trưởng Ban"]), deleteSong);           // DELETE
 
 export default router;

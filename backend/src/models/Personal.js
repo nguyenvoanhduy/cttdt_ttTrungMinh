@@ -7,11 +7,14 @@ const templeHistorySchema = new mongoose.Schema(
       ref: "Temple",
       required: true,
     },
-    joinedAt: {
-      type: Date,
+    role: {
+      type: String,
     },
-    leftAt: {
-      type: Date,
+    startDate: {
+      type: String,
+    },
+    endDate: {
+      type: String,
     },
   },
   { _id: false }
@@ -64,7 +67,7 @@ const personalSchema = new mongoose.Schema({
   note: {
     type: String,
   },
-  currentTemple: {
+  currentTempleId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Temple",
   },

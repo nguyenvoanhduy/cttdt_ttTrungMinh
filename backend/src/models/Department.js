@@ -10,7 +10,7 @@ const departmentSchema = new mongoose.Schema({
   description: {
     type: String
   },
-  manegerId: {
+  managerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Personal'
   },
