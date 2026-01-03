@@ -37,7 +37,11 @@ const server = http.createServer(app);
 // ===== SOCKET.IO =====
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://trungminh.nvaduy.id.vn',
+      'https://www.trungminh.nvaduy.id.vn'
+    ],
     credentials: true,
   },
 });
