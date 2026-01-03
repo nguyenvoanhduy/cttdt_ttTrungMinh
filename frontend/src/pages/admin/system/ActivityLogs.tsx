@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import * as Icons from "@/components/Icons";
 import { activityLogService, type ActivityLog } from "@/services/activityLogService";

@@ -25,7 +25,7 @@ export const GalleryManagement = () => {
     title: event.name,
     coverImage:
       event.bannerUrl || `https://picsum.photos/seed/${event._id}/800/600`,
-    date: event.startTime,
+    date: event.startTime.toISOString(),
     count: Math.floor(Math.random() * 10) + 2,
     isEvent: true,
   }));
