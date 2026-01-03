@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -69,7 +70,7 @@ export const LoginPage = () => {
         <div className="relative z-10 text-center max-w-lg text-white">
           <div className="mb-10 inline-flex p-8 bg-white/10 backdrop-blur-2xl rounded-[3rem] border border-white/20 shadow-2xl">
             <img
-              src="../public/logoThanhThat.png"
+              src="/logoThanhThat.png"
               alt="Logo"
               className="w-28 h-28 object-contain rounded-full"
             />
