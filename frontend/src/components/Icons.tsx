@@ -68,7 +68,10 @@ import {
   Book,
   RefreshCw,
   Trash2,
-  Activity
+  Activity,
+  EyeOff,
+  Eye,
+  Key
 } from 'lucide-react';
 
 export {
@@ -138,5 +141,8 @@ export {
   Book,
   RefreshCw,
   Trash2,
-  Activity
+  Activity,
+  EyeOff,
+  Eye,
+  Key
 };

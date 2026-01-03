@@ -596,11 +596,16 @@ export const PersonalPage = () => {
                   <input
                     type="text"
                     name="phonenumber"
+                    disabled
                     value={formData.phonenumber || ""}
                     onChange={handleInputChange}
-                    placeholder="Nhập số điện thoại"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="Số điện thoại được gán khi tạo tài khoản"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed outline-none"
+                    title="Số điện thoại chỉ được gán khi tạo tài khoản User"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Số điện thoại được gán tự động khi tạo tài khoản đăng nhập
+                  </p>
                 </div>
 
                 <div>

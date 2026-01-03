@@ -16,6 +16,7 @@ interface AuthContextType {
   personal: Personal | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  requirePasswordChange: boolean;
   login: (phonenumber: string, password: string) => Promise<boolean>;
   register: (data: {
     fullname: string;
@@ -25,6 +26,7 @@ interface AuthContextType {
   logout: () => void;
   updatePersonal: (data: Partial<Personal>) => Promise<void>;
   uploadAvatar: (data: FormData) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
   const [user, setUser] = useState<User | null>(null);
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [requirePasswordChange, setRequirePasswordChange] = useState(false);
 
   useEffect(() => {
     fetchMe();
@@ -53,6 +56,12 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
       const result = await res.json();
       if (!res.ok) return false;
 
+      
+      // Kiểm tra nếu cần đổi mật khẩu
+      if (result.requirePasswordChange) {
+        setRequirePasswordChange(true);
+      }
+      
       localStorage.setItem("accessToken", result.accessToken);
       await fetchMe();
       return true;
@@ -194,6 +203,31 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return false;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (res.ok) {
+        setRequirePasswordChange(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Change password error:", err);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -201,11 +235,13 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
         personal,
         isAuthenticated: !!user,
         isLoading,
+        requirePasswordChange,
         login,
         register,
         logout,
         updatePersonal,
         uploadAvatar,
+        changePassword,
       }}
     >
       {children}

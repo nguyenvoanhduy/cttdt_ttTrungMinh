@@ -23,9 +23,8 @@ const templeHistorySchema = new mongoose.Schema(
 const personalSchema = new mongoose.Schema({
   phonenumber: {
     type: String,
-    required: true,
-    unique: true, // Personal chỉ có 1 số điện thoại
     trim: true,
+    sparse: true, // Cho phép null/undefined và không bắt buộc unique
   },
 
   fullname: {

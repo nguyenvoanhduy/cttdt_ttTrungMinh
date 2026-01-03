@@ -6,15 +6,19 @@ import { userService } from "@/services/userService";
 import { personalService } from "@/services/personalService";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/Toast";
+import api from "@/util/axios";
 
 export const Roles = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [personals, setPersonals] = useState<Personal[]>([]);
   const [searchTerm, setSearchTerm] = useState(""); // Search State
+  const [personalSearchTerm, setPersonalSearchTerm] = useState(""); // Search in combobox
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<User>>({});
+  const [newPassword, setNewPassword] = useState(""); // For password change
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +67,7 @@ export const Roles = () => {
     setIsEditMode(false);
     setEditingUserId(null);
     setFormData({ role: UserRole.MEMBER });
+    setPersonalSearchTerm(""); // Reset search term
     setIsModalOpen(true);
   };
 
@@ -87,6 +92,12 @@ export const Roles = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isEditMode && !formData.personalId) {
+      showError("Vui lòng chọn tín đồ");
+      return;
+    }
+    
     setIsSaving(true);
     setError(null);
     try {
@@ -111,6 +122,7 @@ export const Roles = () => {
       setFormData({});
       setIsEditMode(false);
       setEditingUserId(null);
+      setPersonalSearchTerm("");
     } catch (err: any) {
       console.error('Error saving user:', err);
       const errorMsg = err.response?.data?.message || 'Không thể lưu thông tin';
@@ -141,6 +153,37 @@ export const Roles = () => {
     setDeleteConfirm({ open: false, id: '', name: '' });
     await handleDelete(id);
   };
+
+  const handleChangePassword = (user: User) => {
+    setEditingUserId(user._id);
+    setNewPassword("");
+    setShowPasswordModal(true);
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUserId || !newPassword) return;
+    
+    setIsSaving(true);
+    try {
+      // Gọi API đổi mật khẩu (cần thêm vào userService)
+      await api.put(`/users/${editingUserId}/password`, { password: newPassword });
+      success("Đổi mật khẩu thành công!");
+      setShowPasswordModal(false);
+      setNewPassword("");
+      setEditingUserId(null);
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Không thể đổi mật khẩu');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Filter personals based on search term
+  const filteredPersonals = personals.filter((p) =>
+    p.fullname.toLowerCase().includes(personalSearchTerm.toLowerCase()) ||
+    (p.phonenumber && p.phonenumber.toLowerCase().includes(personalSearchTerm.toLowerCase()))
+  );
 
   return (
     <div className="p-8 animate-in fade-in duration-500">
@@ -207,6 +250,9 @@ export const Roles = () => {
                   Vai trò (Role)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                  Mật khẩu
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Ngày tạo
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
@@ -247,6 +293,18 @@ export const Roles = () => {
                         >
                           {user.role}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-gray-600">••••••</span>
+                          <button
+                            onClick={() => handleChangePassword(user)}
+                            className="text-blue-600 hover:text-blue-900 text-xs font-medium"
+                            title="Đổi mật khẩu"
+                          >
+                            <Icons.Key className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString()}
@@ -314,20 +372,43 @@ export const Roles = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Chọn Tín đồ
                       </label>
-                      <select
-                        name="personalId"
-                        required
-                        value={formData.personalId || ""}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
-                      >
-                        <option value="">-- Chọn danh tính --</option>
-                        {personals.map((p) => (
-                          <option key={p._id} value={p._id}>
-                            {p.fullname}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                          <Icons.Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Tìm kiếm theo tên hoặc SĐT..."
+                          value={personalSearchTerm}
+                          onChange={(e) => setPersonalSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-3 py-2 mb-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg">
+                        {filteredPersonals.length > 0 ? (
+                          filteredPersonals.map((p) => (
+                            <div
+                              key={p._id}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, personalId: p._id }));
+                                setPersonalSearchTerm(p.fullname);
+                              }}
+                              className={`px-4 py-2 cursor-pointer hover:bg-purple-50 ${
+                                formData.personalId === p._id ? 'bg-purple-100 font-semibold' : ''
+                              }`}
+                            >
+                              <div className="text-sm">{p.fullname}</div>
+                              {p.phonenumber && (
+                                <div className="text-xs text-gray-500">{p.phonenumber}</div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                            Không tìm thấy tín đồ phù hợp
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -371,13 +452,19 @@ export const Roles = () => {
                 </div>
 
                 {!isEditMode && (
-                  <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-xs text-yellow-800">
-                    <p>
-                      <strong>Lưu ý:</strong> Mật khẩu mặc định sẽ được gửi qua
-                      SMS cho người dùng. Người dùng cần đổi mật khẩu sau lần đăng
-                      nhập đầu tiên.
-                    </p>
-                  </div>
+                  <>
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs text-blue-800">
+                      <p>
+                        <strong>Thông tin:</strong> Số điện thoại sẽ được gán cho tín đồ và dùng làm tên đăng nhập.
+                      </p>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-xs text-yellow-800">
+                      <p>
+                        <strong>Lưu ý:</strong> Mật khẩu mặc định là "<strong>1</strong>". 
+                        Người dùng sẽ được yêu cầu đổi mật khẩu ngay khi đăng nhập lần đầu.
+                      </p>
+                    </div>
+                  </>
                 )}
               </form>
             </div>
@@ -432,6 +519,64 @@ export const Roles = () => {
                   </div>
               </div>
           </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                <Icons.Key className="w-5 h-5 mr-2 text-purple-600" />
+                Đổi mật khẩu
+              </h3>
+              <button onClick={() => setShowPasswordModal(false)}>
+                <Icons.X className="w-5 h-5 text-gray-400 hover:text-red-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mật khẩu mới
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu mới"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  minLength={1}
+                />
+              </div>
+
+              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mb-4">
+                <p className="text-xs text-yellow-800">
+                  <Icons.AlertCircle className="w-4 h-4 inline mr-1" />
+                  Người dùng sẽ cần sử dụng mật khẩu mới này để đăng nhập.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50"
+                >
+                  {isSaving ? "Đang lưu..." : "Đổi mật khẩu"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

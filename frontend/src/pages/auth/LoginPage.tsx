@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import * as Icons from "@/components/Icons";
 import { useAuth } from "@/context/AuthContext";
 
@@ -13,6 +13,18 @@ export const LoginPage = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Lấy trang mà user đang cố truy cập trước khi bị redirect đến login
+  const from = (location.state as any)?.from || "/";
+  const message = (location.state as any)?.message;
+
+  // Hiển thị thông báo nếu user bị redirect do chưa đăng nhập
+  React.useEffect(() => {
+    if (message) {
+      setError(message);
+    }
+  }, [message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +40,8 @@ export const LoginPage = () => {
     try {
       const success = await login(phoneNumber, password);
       if (success) {
-        navigate("/");
+        // Redirect về trang user đang cố truy cập, hoặc trang chủ nếu không có
+        navigate(from, { replace: true });
       } else {
         setError("Số điện thoại hoặc mật khẩu không chính xác.");
       }

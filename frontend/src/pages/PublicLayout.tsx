@@ -7,6 +7,7 @@ import { Chatbot } from '../components/ChatBot';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, type Notification } from '../types';
 import { notificationService } from '@/services/notificationService';
+import { toast } from 'sonner';
 
 export const PublicLayout = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -23,6 +24,16 @@ export const PublicLayout = () => {
   const { user, personal, isAuthenticated, logout } = useAuth();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Hiển thị thông báo lỗi nếu có từ state (khi redirect từ ProtectedRoute)
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.error) {
+      toast.error(state.error);
+      // Xóa error khỏi state sau khi hiển thị
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   // Fetch notifications from API
   useEffect(() => {

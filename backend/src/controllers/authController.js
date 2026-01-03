@@ -112,6 +112,7 @@ export const logIn = async (req, res) => {
     res.status(200).json({
       message: "Đăng nhập thành công",
       accessToken,
+      requirePasswordChange: user.requirePasswordChange || false,
     });
   } catch (error) {
     console.error("Lỗi đăng nhập:", error);
@@ -169,5 +170,45 @@ export const getMe = async (req, res) => {
   } catch (error) {
     console.error("Lỗi getMe:", error);
     res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Vui lòng cung cấp đầy đủ thông tin" });
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 4 ký tự" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+
+    // Kiểm tra mật khẩu hiện tại
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Mật khẩu hiện tại không đúng" });
+    }
+
+    // Hash mật khẩu mới
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Cập nhật mật khẩu và bỏ flag requirePasswordChange
+    user.password = hashedPassword;
+    user.requirePasswordChange = false;
+    user.updatedAt = new Date();
+    await user.save();
+
+    res.status(200).json({ message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    console.error("Lỗi đổi mật khẩu:", error);
+    res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };

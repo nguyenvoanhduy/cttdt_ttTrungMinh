@@ -35,6 +35,9 @@ import { Roles } from "./pages/admin/system/Roles";
 import { Support } from "./pages/admin/system/Support";
 
 import { Toaster } from "sonner";
+import { PasswordChangeGuard } from "./components/PasswordChangeGuard";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { UserRole } from "./types";
 
 // Component để track page views
 function PageTracker() {
@@ -55,10 +58,11 @@ function App() {
     <>
       <Toaster richColors />
       <AuthProvider>
-        <BrowserRouter>
-          <PageTracker />
-          <ScrollToTop />
-          <Routes>
+        <PasswordChangeGuard>
+          <BrowserRouter>
+            <PageTracker />
+            <ScrollToTop />
+            <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<LandingPage />} />
@@ -72,23 +76,25 @@ function App() {
               <Route path="/calendar" element={<PublicCalendarPage />} />
             </Route>
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<DashboardLayout />}>
-              <Route
-                index
-                element={<Navigate to="/admin/dashboard" replace />}
-              />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="personals" element={<PersonalPage />} />
-              <Route path="temples" element={<TemplePage />} />
-              <Route path="departments" element={<DepartmentPage />} />
-              <Route path="events" element={<EventPage />} />
-              <Route path="library" element={<Library />} />
-              <Route path="gallery" element={<GalleryManagement />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="support" element={<Support />} />
-              <Route path="roles" element={<Roles />} />
-              <Route path="logs" element={<ActivityLogs />} />
+            {/* Admin Routes - Protected */}
+            <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]} />}>
+              <Route path="/admin" element={<DashboardLayout />}>
+                <Route
+                  index
+                  element={<Navigate to="/admin/dashboard" replace />}
+                />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="personals" element={<PersonalPage />} />
+                <Route path="temples" element={<TemplePage />} />
+                <Route path="departments" element={<DepartmentPage />} />
+                <Route path="events" element={<EventPage />} />
+                <Route path="library" element={<Library />} />
+                <Route path="gallery" element={<GalleryManagement />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="support" element={<Support />} />
+                <Route path="roles" element={<Roles />} />
+                <Route path="logs" element={<ActivityLogs />} />
+              </Route>
             </Route>
 
             {/* Auth Routes */}
@@ -96,6 +102,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
         </BrowserRouter>
+        </PasswordChangeGuard>
       </AuthProvider>
     </>
   );

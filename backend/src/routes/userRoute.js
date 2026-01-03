@@ -3,7 +3,8 @@ import {
     authMe, 
     getAllUsers, 
     createUser, 
-    updateUserRole, 
+    updateUserRole,
+    updateUserPassword,
     deleteUser 
 } from '../controllers/userController.js';
 import { protectedRoute } from '../middlewares/authMiddleware.js';
@@ -15,6 +16,7 @@ router.get('/me', authMe);
 router.get('/', protectedRoute, authorizeRoles(['Admin', 'Trưởng Ban']), getAllUsers);
 router.post('/', protectedRoute, authorizeRoles(['Admin']), createUser);
 router.put('/:id/role', protectedRoute, authorizeRoles(['Admin']), updateUserRole);
+router.put('/:id/password', protectedRoute, authorizeRoles(['Admin']), updateUserPassword);
 router.delete('/:id', protectedRoute, authorizeRoles(['Admin']), deleteUser);
 
 export default router;

@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
   refreshToken: {
     type: String,
   },
+  requirePasswordChange: {
+    type: Boolean,
+    default: false,
+  },
   lastLogin: {
     type: Date,
   },
