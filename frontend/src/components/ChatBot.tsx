@@ -57,6 +57,24 @@ export const Chatbot = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  /* ===== LOAD SESSION FROM LOCALSTORAGE ===== */
+  useEffect(() => {
+    if (user?._id) {
+      const savedSessionId = localStorage.getItem(`chat_session_${user._id}`);
+      if (savedSessionId) {
+        setCurrentSessionId(savedSessionId);
+        console.log('Loaded session from localStorage:', savedSessionId);
+      }
+    }
+  }, [user]);
+
+  /* ===== SAVE SESSION TO LOCALSTORAGE ===== */
+  useEffect(() => {
+    if (currentSessionId && user?._id) {
+      localStorage.setItem(`chat_session_${user._id}`, currentSessionId);
+    }
+  }, [currentSessionId, user]);
+
   /* ===== LOAD CHATBOT CONFIG ===== */
   useEffect(() => {
     const loadConfig = async () => {
@@ -199,15 +217,17 @@ export const Chatbot = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user?._id || null,
-          message: text
+          message: text,
+          sessionId: currentSessionId // Gửi sessionId hiện tại nếu có
         })
       });
 
       const data = await res.json();
 
-      // Lưu sessionId server trả về
-      if (data.sessionId) {
+      // Lưu sessionId server trả về (chỉ lưu lần đầu hoặc khi sessionId thay đổi)
+      if (data.sessionId && data.sessionId !== currentSessionId) {
         setCurrentSessionId(data.sessionId);
+        console.log('Session created/updated:', data.sessionId);
       }
 
       // Check if admin mode

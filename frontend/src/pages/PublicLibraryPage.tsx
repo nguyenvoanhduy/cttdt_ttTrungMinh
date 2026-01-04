@@ -95,7 +95,12 @@ export const PublicLibraryPage = () => {
     if (!audio) return;
 
     if (isPlaying) {
-      audio.play().catch(err => console.error('Play error:', err));
+      audio.play().catch(err => {
+        console.error('Play error:', err);
+        console.error('Audio source:', audio.src);
+        setIsPlaying(false);
+        alert('Không thể phát bài hát. Vui lòng kiểm tra kết nối hoặc thử lại sau.');
+      });
     } else {
       audio.pause();
     }
@@ -105,6 +110,16 @@ export const PublicLibraryPage = () => {
       if (playingSong?._id === song._id) {
         setIsPlaying(!isPlaying);
       } else {
+        // Validate audio URL before setting
+        const audioUrl = getFullFileUrl(song.audioUrl);
+        console.log('Loading audio from:', audioUrl); // Debug log
+        
+        if (!audioUrl || audioUrl === '') {
+          console.error('Invalid audio URL for song:', song.title);
+          alert('Không thể phát bài hát này. URL không hợp lệ.');
+          return;
+        }
+        
         setPlayingSong(song);
         setIsPlaying(true);
         setProgress(0);
@@ -139,24 +154,52 @@ export const PublicLibraryPage = () => {
   // Helper function to get full file URL
   const getFullFileUrl = (fileUrl: string) => {
     if (!fileUrl) return '';
+    
     // If already a full URL (starts with http:// or https://)
     if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
       return fileUrl;
     }
+    
     // If relative path, prepend backend base URL
-    const baseURL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
-    return `${baseURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const baseURL = apiUrl.replace('/api', '');
+    
+    // Ensure proper path construction
+    const path = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+    return `${baseURL}${path}`;
   };
 
-  // Filter Data based on Search Term
-  const filteredBooks = books.filter(b => 
-    b.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.categories.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Map tab IDs to category names
+  const getCategoryForTab = (tabId: string): string => {
+    const categoryMap: Record<string, string> = {
+      'thanh_giao': 'Thánh Giáo',
+      'su_dao': 'Sử Đạo',
+      'sach_tap_san': 'Sách & tập san',
+      'giao_ly': 'Giáo lý',
+    };
+    return categoryMap[tabId] || '';
+  };
+
+  // Filter Data based on Active Tab and Search Term
+  const filteredBooks = books.filter(b => {
+    const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.categories.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // If it's a book tab, also filter by category
+    if (activeTabType === 'book') {
+      const categoryForTab = getCategoryForTab(activeTabId);
+      const matchesCategory = categoryForTab ? b.categories.includes(categoryForTab) : true;
+      return matchesSearch && matchesCategory;
+    }
+    
+    return matchesSearch;
+  });
+
   const filteredSongs = songs.filter(s => 
     s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
   const filteredVideos = videos.filter(v => 
     v.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (v.description && v.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -460,7 +503,14 @@ export const PublicLibraryPage = () => {
                <audio 
                  ref={audioRef} 
                  src={getFullFileUrl(playingSong.audioUrl)}
-                 onError={(e) => console.error('Audio load error:', e)}
+                 preload="metadata"
+                 onError={(e) => {
+                   console.error('Audio load error:', e);
+                   console.error('Failed to load:', getFullFileUrl(playingSong.audioUrl));
+                   alert('Không thể tải file nhạc. Vui lòng kiểm tra đường dẫn file.');
+                   setIsPlaying(false);
+                 }}
+                 onLoadedData={() => console.log('Audio loaded successfully')}
                />
                
                <button onClick={handleCloseViewer} className="absolute top-6 right-6 text-white/50 hover:text-white p-2 z-50">

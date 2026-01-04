@@ -121,9 +121,26 @@ app.use("/api/notifications", notificationRoute);
 app.use("/api/analytics", analyticsRoute);
 app.use("/api/chatbot-config", chatbotConfigRoute);
 // ===== PRIVATE ROUTES =====
-// serve uploads folder statically
+// serve uploads folder statically with proper CORS and MIME types
 import path from 'path';
-app.use('/uploads', express.static(path.resolve('uploads')));
+app.use('/uploads', (req, res, next) => {
+  // Set CORS headers for static files
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Set proper MIME types for audio files
+  const ext = path.extname(req.path).toLowerCase();
+  if (ext === '.mp3') {
+    res.setHeader('Content-Type', 'audio/mpeg');
+  } else if (ext === '.wav') {
+    res.setHeader('Content-Type', 'audio/wav');
+  } else if (ext === '.ogg') {
+    res.setHeader('Content-Type', 'audio/ogg');
+  }
+  
+  next();
+}, express.static(path.resolve('uploads')));
 
 app.use(protectedRoute);
 app.use('/api/users', userRoute);

@@ -350,7 +350,7 @@ export const Support = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50 border-t">
+    <div className="h-[calc(110vh-64px)] flex flex-col bg-gray-50 border-t">
       {/* ===== TAB ===== */}
       <div className="bg-white border-b px-6 flex gap-6">
         <button
@@ -380,9 +380,14 @@ export const Support = () => {
 
       {/* ===== CHAT VIEW ===== */}
       {activeTab === "chat" && (
-        <div className="flex flex-1">
+        <div className="flex flex-1 overflow-hidden h-full">
           {/* ===== SESSION LIST ===== */}
-          <div className="w-80 bg-white border-r overflow-y-auto">
+          <div className="w-80 bg-white border-r flex flex-col h-full">
+            <div className="p-4 border-b bg-gray-50 shrink-0">
+              <h3 className="font-bold text-gray-700">Danh sách hội thoại</h3>
+              <p className="text-xs text-gray-500 mt-1">{sessions.length} cuộc hội thoại</p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
                 <div className="text-sm text-gray-500">Đang tải...</div>
@@ -421,6 +426,7 @@ export const Support = () => {
                 </div>
               ))
             )}
+            </div>
           </div>
 
           {/* ===== CHAT WINDOW ===== */}

@@ -25,6 +25,7 @@ export const EventPage = () => {
     const { toasts, removeToast, success, error: showError } = useToast();
     const [events, setEvents] = useState<Event[]>([]);
     const [filter, setFilter] = useState("All");
+    const [searchQuery, setSearchQuery] = useState("");
     const [members, setMembers] = useState<Personal[]>([]);
 
   /* ===== EVENT TYPES ===== */
@@ -122,10 +123,24 @@ export const EventPage = () => {
 
   /* ===== FILTER ===== */
   const filteredEvents = useMemo(() => {
-    return filter === "All"
-      ? events
-      : events.filter((e) => e.status === filter);
-  }, [events, filter]);
+    let result = events;
+    
+    // Filter by status
+    if (filter !== "All") {
+      result = result.filter((e) => e.status === filter);
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      result = result.filter((e) => 
+        e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    
+    return result;
+  }, [events, filter, searchQuery]);
 
   const filteredMembers = useMemo(() => {
     return members.filter(
@@ -414,6 +429,26 @@ export const EventPage = () => {
            <p className="text-slate-500 text-sm mt-1 font-medium italic">Không gian điều phối chương trình đạo sự của Thánh Thất</p>
         </div>
         <div className="flex gap-3">
+             {/* Search Box */}
+             <div className="relative">
+                <Icons.Search className="absolute left-4 top-8 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input 
+                    type="text"
+                    placeholder="Tìm kiếm sự kiện..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-64 pl-11 pr-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl font-medium shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                />
+                {searchQuery && (
+                    <button 
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                        <Icons.X className="w-4 h-4" />
+                    </button>
+                )}
+             </div>
+             
              <div className="relative">
                 <select 
                     className="appearance-none bg-white border border-slate-200 text-slate-700 py-3 px-5 pr-10 rounded-2xl font-bold shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer"
@@ -441,7 +476,18 @@ export const EventPage = () => {
 
       {/* Grid view Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-           {filteredEvents.map(event => {
+           {filteredEvents.length === 0 ? (
+               <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
+                   <Icons.Calendar className="w-16 h-16 mb-4 opacity-20" />
+                   <p className="text-lg font-bold">
+                       {searchQuery ? 'Không tìm thấy sự kiện phù hợp' : 'Chưa có sự kiện nào'}
+                   </p>
+                   <p className="text-sm mt-1">
+                       {searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Bấm "Tạo Sự Kiện Mới" để bắt đầu'}
+                   </p>
+               </div>
+           ) : (
+               filteredEvents.map(event => {
                const organizerId = (event as any).organizer && typeof (event as any).organizer === 'object'
                 ? (event as any).organizer._id
                 : (event as any).organizer;
@@ -528,7 +574,8 @@ export const EventPage = () => {
                     </div>
                 </div>
              );
-        })}
+        })
+           )}
       </div>
 
       {/* --- MODAL THÊM/SỬA SỰ KIỆN --- */}
