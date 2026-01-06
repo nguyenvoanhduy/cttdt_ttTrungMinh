@@ -7,6 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/Toast';
+import { uploadImage } from '@/services/uploadService';
 
 export const TemplePage = () => {
   const [temples, setTemples] = useState<Temple[]>([]);
@@ -21,6 +22,7 @@ export const TemplePage = () => {
   });
   const { toasts, removeToast, success, error: showError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   useEffect(() => {
     const fetchTemples = async () => {
       try {
@@ -74,14 +76,20 @@ export const TemplePage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    try {
+      setIsUploading(true);
+      const cloudinaryUrl = await uploadImage(file);
+      setFormData((prev) => ({ ...prev, imageUrl: cloudinaryUrl }));
+      success('Tải ảnh lên thành công!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      showError('Không thể tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -326,10 +334,17 @@ export const TemplePage = () => {
                     Hình ảnh Thánh thất
                   </label>
                   <div
-                    onClick={handleTriggerFileUpload}
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors relative overflow-hidden h-40 bg-gray-50"
+                    onClick={() => !isUploading && handleTriggerFileUpload()}
+                    className={`border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center transition-colors relative overflow-hidden h-40 bg-gray-50 ${
+                      isUploading ? 'cursor-wait opacity-50' : 'cursor-pointer hover:border-blue-500 hover:bg-blue-50'
+                    }`}
                   >
-                    {formData.imageUrl ? (
+                    {isUploading ? (
+                      <>
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <span className="text-sm text-gray-500">Đang tải ảnh lên...</span>
+                      </>
+                    ) : formData.imageUrl ? (
                       <img
                         src={formData.imageUrl}
                         className="w-full h-full object-cover absolute inset-0 rounded-lg"
@@ -349,6 +364,7 @@ export const TemplePage = () => {
                       className="hidden"
                       accept="image/*"
                       onChange={handleFileChange}
+                      disabled={isUploading}
                     />
                   </div>
                 </div>

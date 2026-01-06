@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/purity */
 
@@ -32,6 +33,11 @@ export const GalleryManagement = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const [isSavingAlbum, setIsSavingAlbum] = useState(false);
+  const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  
+  // Image preview modal
+  const [previewImage, setPreviewImage] = useState<{ src: string; caption: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; type: 'photo' | 'album'; name: string }>({ 
@@ -281,8 +287,13 @@ export const GalleryManagement = () => {
         description: newAlbumData.location
       };
 
-      const response = await fetch(`${API_BASE_URL}/gallery/albums`, {
-        method: 'POST',
+      const isEditing = !!editingAlbumId;
+      const url = isEditing 
+        ? `${API_BASE_URL}/gallery/albums/${editingAlbumId}`
+        : `${API_BASE_URL}/gallery/albums`;
+      
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -296,22 +307,31 @@ export const GalleryManagement = () => {
       }
 
       const result = await response.json();
+      const albumData = result.data;
       
-      // Add new album to list
-      const newAlbum = result.data;
-      setAlbums(prev => [newAlbum, ...prev]);
+      if (isEditing) {
+        // Update existing album in list
+        setAlbums(prev => prev.map(a => 
+          (a._id || a.id) === editingAlbumId ? albumData : a
+        ));
+        success('Đã cập nhật album thành công');
+      } else {
+        // Add new album to list
+        setAlbums(prev => [albumData, ...prev]);
+        const newAlbumId = albumData._id || albumData.id;
+        setSelectedAlbumId(newAlbumId);
+        success('Đã tạo album mới thành công');
+      }
+      
       setIsSavingAlbum(false);
       setIsAlbumModalOpen(false);
+      setEditingAlbumId(null);
       setNewAlbumData({ date: new Date().toISOString().split('T')[0] });
-      
-      const newAlbumId = newAlbum._id || newAlbum.id;
-      console.log('New album created with ID:', newAlbumId);
-      setSelectedAlbumId(newAlbumId);
       setModalError(null);
     } catch (err) {
-      console.error('Error creating album:', err);
+      console.error('Error saving album:', err);
       const errorMsg = err instanceof Error ? err.message : 'Lỗi không xác định';
-      setModalError(errorMsg || 'Không thể tạo album. Vui lòng thử lại.');
+      setModalError(errorMsg || 'Không thể lưu album. Vui lòng thử lại.');
       setIsSavingAlbum(false);
     }
   };
@@ -358,16 +378,43 @@ export const GalleryManagement = () => {
 
   const handleAlbumCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      try {
-        setModalError(null);
-        const compressedImage = await compressImage(file);
-        setNewAlbumData(prev => ({ ...prev, coverImage: compressedImage }));
-        setModalError(null);
-      } catch (err) {
-        console.error('Error compressing image:', err);
-        setModalError('Lỗi xử lý ảnh. Vui lòng thử lại.');
+    if (!file) return;
+    
+    try {
+      setModalError(null);
+      setIsUploadingCover(true);
+      const token = getAuthToken();
+      
+      // Upload to Cloudinary
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Không thể tải ảnh lên');
       }
+      
+      const uploadResult = await uploadResponse.json();
+      const imageUrl = uploadResult.imageUrl || uploadResult.url;
+      
+      if (!imageUrl) {
+        throw new Error('Không nhận được URL ảnh từ server');
+      }
+      
+      setNewAlbumData(prev => ({ ...prev, coverImage: imageUrl }));
+      setModalError(null);
+    } catch (err) {
+      console.error('Error uploading cover image:', err);
+      setModalError('Lỗi tải ảnh bìa lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploadingCover(false);
     }
   };
 
@@ -402,6 +449,18 @@ export const GalleryManagement = () => {
       setError('Lỗi xóa ảnh');
       showError('Không thể xóa ảnh');
     }
+  };
+
+  const handleEditAlbumClick = (album: Album) => {
+    const albumId = album._id || album.id;
+    setEditingAlbumId(albumId || null);
+    setNewAlbumData({
+      title: album.title,
+      coverImage: album.coverImage,
+      date: album.date || new Date().toISOString().split('T')[0],
+      location: album.location,
+    });
+    setIsAlbumModalOpen(true);
   };
 
   const handleDeleteAlbumClick = (albumId: string, title: string) => {
@@ -512,17 +571,30 @@ export const GalleryManagement = () => {
                                 <Icons.Image className="w-5 h-5 mr-2 text-blue-500" />
                                 Danh sách ảnh ({isLoadingImages ? '...' : images.length})
                             </h3>
-                            <button
-                                onClick={() => {
-                                    const album = albums.find(a => (a._id || a.id) === selectedAlbumId);
-                                    if (album) handleDeleteAlbumClick(selectedAlbumId!, album.title);
-                                }}
-                                className="ml-auto mr-3 px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors text-sm font-medium flex items-center"
-                                title="Xóa album"
-                            >
-                                <Icons.Trash className="w-4 h-4 mr-1" />
-                                Xóa Album
-                            </button>
+                            <div className="ml-auto flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        const album = albums.find(a => (a._id || a.id) === selectedAlbumId);
+                                        if (album) handleEditAlbumClick(album);
+                                    }}
+                                    className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors text-sm font-medium flex items-center"
+                                    title="Sửa album"
+                                >
+                                    <Icons.Edit className="w-4 h-4 mr-1" />
+                                    Sửa Album
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const album = albums.find(a => (a._id || a.id) === selectedAlbumId);
+                                        if (album) handleDeleteAlbumClick(selectedAlbumId!, album.title);
+                                    }}
+                                    className="mr-3 px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors text-sm font-medium flex items-center"
+                                    title="Xóa album"
+                                >
+                                    <Icons.Trash className="w-4 h-4 mr-1" />
+                                    Xóa Album
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="flex gap-2">
@@ -577,8 +649,20 @@ export const GalleryManagement = () => {
                               }}
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <button className="p-2 bg-white/90 rounded-full text-blue-600 hover:text-blue-800"><Icons.Search className="w-4 h-4" /></button>
-                                <button onClick={() => handleDeleteImageClick(img.id, img.caption)} className="p-2 bg-white/90 rounded-full text-red-600 hover:text-red-800"><Icons.Trash className="w-4 h-4" /></button>
+                                <button 
+                                  onClick={() => setPreviewImage({ src: img.src, caption: img.caption })}
+                                  className="p-2 bg-white/90 rounded-full text-blue-600 hover:text-blue-800 hover:scale-110 transition-transform"
+                                  title="Xem ảnh"
+                                >
+                                  <Icons.Search className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteImageClick(img.id, img.caption)} 
+                                  className="p-2 bg-white/90 rounded-full text-red-600 hover:text-red-800 hover:scale-110 transition-transform"
+                                  title="Xóa ảnh"
+                                >
+                                  <Icons.Trash className="w-4 h-4" />
+                                </button>
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 text-center">
                                 <p className="text-[10px] text-white truncate px-1">{img.caption}</p>
@@ -607,10 +691,17 @@ export const GalleryManagement = () => {
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-md relative flex flex-col animate-in zoom-in-95 duration-200">
                     <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                         <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                            <Icons.FolderPlus className="w-5 h-5 mr-2 text-emerald-600" />
-                            Tạo Album Mới
+                            {editingAlbumId ? (
+                                <><Icons.Edit className="w-5 h-5 mr-2 text-blue-600" />Chỉnh sửa Album</>
+                            ) : (
+                                <><Icons.FolderPlus className="w-5 h-5 mr-2 text-emerald-600" />Tạo Album Mới</>
+                            )}
                         </h3>
-                        <button onClick={() => setIsAlbumModalOpen(false)} disabled={isSavingAlbum} className="text-gray-400 hover:text-red-500">
+                        <button onClick={() => {
+                            setIsAlbumModalOpen(false);
+                            setEditingAlbumId(null);
+                            setNewAlbumData({ date: new Date().toISOString().split('T')[0] });
+                        }} disabled={isSavingAlbum} className="text-gray-400 hover:text-red-500">
                             <Icons.X className="w-5 h-5" />
                         </button>
                     </div>
@@ -659,10 +750,17 @@ export const GalleryManagement = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh bìa Album</label>
                                 <div 
-                                    onClick={() => albumCoverInputRef.current?.click()}
-                                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors relative overflow-hidden h-32 bg-gray-50"
+                                    onClick={() => !isUploadingCover && albumCoverInputRef.current?.click()}
+                                    className={`border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center transition-colors relative overflow-hidden h-32 bg-gray-50 ${
+                                        isUploadingCover ? 'cursor-wait opacity-50' : 'cursor-pointer hover:border-emerald-500 hover:bg-emerald-50'
+                                    }`}
                                 >
-                                    {newAlbumData.coverImage ? (
+                                    {isUploadingCover ? (
+                                        <>
+                                            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                            <span className="text-sm text-gray-500">Đang tải ảnh lên...</span>
+                                        </>
+                                    ) : newAlbumData.coverImage ? (
                                         <img 
                                           src={newAlbumData.coverImage} 
                                           className="w-full h-full object-cover absolute inset-0 rounded-lg" 
@@ -674,17 +772,43 @@ export const GalleryManagement = () => {
                                     ) : (
                                         <><Icons.Camera className="w-8 h-8 text-gray-400 mb-2" /><span className="text-sm text-gray-500">Chọn ảnh bìa</span></>
                                     )}
-                                    <input type="file" ref={albumCoverInputRef} className="hidden" accept="image/*" onChange={handleAlbumCoverChange} />
+                                    <input type="file" ref={albumCoverInputRef} className="hidden" accept="image/*" onChange={handleAlbumCoverChange} disabled={isUploadingCover} />
                                 </div>
                             </div>
                         </form>
                     </div>
 
                     <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 rounded-b-xl">
-                        <button onClick={() => setIsAlbumModalOpen(false)} disabled={isSavingAlbum} className="px-4 py-2 text-gray-600 text-sm font-medium">Hủy</button>
-                        <button type="submit" form="create-album-form" disabled={isSavingAlbum || !newAlbumData.title} className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 text-sm">
-                            {isSavingAlbum ? 'Đang tạo...' : 'Tạo Album'}
+                        <button onClick={() => {
+                            setIsAlbumModalOpen(false);
+                            setEditingAlbumId(null);
+                            setNewAlbumData({ date: new Date().toISOString().split('T')[0] });
+                        }} disabled={isSavingAlbum} className="px-4 py-2 text-gray-600 text-sm font-medium">Hủy</button>
+                        <button type="submit" form="create-album-form" disabled={isSavingAlbum || !newAlbumData.title || isUploadingCover} className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 text-sm disabled:opacity-50">
+                            {isSavingAlbum ? (editingAlbumId ? 'Đang lưu...' : 'Đang tạo...') : (editingAlbumId ? 'Lưu thay đổi' : 'Tạo Album')}
                         </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Image Preview Modal */}
+        {previewImage && (
+            <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50" onClick={() => setPreviewImage(null)}>
+                <button 
+                    onClick={() => setPreviewImage(null)}
+                    className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10"
+                >
+                    <Icons.X className="w-6 h-6" />
+                </button>
+                <div className="max-w-6xl max-h-[90vh] w-full p-4" onClick={(e) => e.stopPropagation()}>
+                    <img 
+                        src={previewImage.src} 
+                        alt={previewImage.caption}
+                        className="w-full h-full object-contain rounded-lg"
+                    />
+                    <div className="mt-4 text-center">
+                        <p className="text-white text-lg font-medium">{previewImage.caption}</p>
                     </div>
                 </div>
             </div>

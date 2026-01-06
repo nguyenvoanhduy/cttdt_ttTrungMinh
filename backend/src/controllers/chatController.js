@@ -241,8 +241,10 @@ ${historyText || 'Chưa có lịch sử chat'}
 - Nếu người dùng hỏi về thông tin cá nhân của họ, sử dụng "Thông tin người dùng đang chat" ở trên
 - Nếu người dùng hỏi về ngày giờ, sử dụng "Ngày giờ hiện tại" ở trên
 - Tham khảo lịch sử hội thoại để trả lời có ngữ cảnh liên tục
+- Xưng mình là "tôi", xưng user là "bạn"
 - Nếu người dùng hỏi về lịch âm dương, sử dụng cả hai thông tin ngày
 - Khi trả lời về sự kiện, hãy chuyển đổi thời gian từ định dạng ISO sang dạng dễ đọc cho người Việt
+- Trả lời ngắn gọn, súc tích, mỗi câu trả lời không quá 200 từ
 
 User: ${message}
 Bot:
@@ -355,7 +357,6 @@ export const getSuggestedQuestions = async (req, res) => {
   if (temple)
     questions.push(`Địa chỉ ${temple.name} ở đâu?`);
 
-  questions.push("Làm sao để đăng ký quy y?");
   questions.push("Liên hệ Ban Cai Quản bằng cách nào?");
 
   res.json(questions);

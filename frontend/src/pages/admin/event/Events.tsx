@@ -324,11 +324,12 @@ export const EventPage = () => {
       success('Tải ảnh lên thành công!');
     } catch (error) {
       console.error('Upload error:', error);
-      showError('Không thể tải ảnh lên. Vui lòng thử lại.');
-      // Fallback to base64 if Cloudinary fails
+      // Fallback to base64 if Cloudinary fails (without showing error to user)
       const reader = new FileReader();
-      reader.onloadend = () =>
+      reader.onloadend = () => {
         setFormData((p: any) => ({ ...p, bannerUrl: reader.result }));
+        success('Đã chọn ảnh, sẽ tải lên khi lưu sự kiện.');
+      };
       reader.readAsDataURL(file);
     } finally {
       setIsUploading(false);
@@ -374,8 +375,8 @@ export const EventPage = () => {
     eventType: formData.eventType,
     organizer: formData.organizer,
     members: formData.members,
-    startTime: new Date(formData.startTime),
-    endTime: new Date(formData.endTime),
+    startTime: formData.startTime,
+    endTime: formData.endTime,
     schedule: formData.schedule,
   });   
   const handleSave = async (e: React.FormEvent) => {
@@ -784,9 +785,20 @@ export const EventPage = () => {
                                     <Icons.Calendar className="absolute left-6 top-10 -translate-y-1/2 text-blue-500 w-5 h-5 pointer-events-none z-10" />
                                     <DatePicker
                                         selected={formData.startTime ? new Date(formData.startTime) : null}
-                                        onChange={(date: Date | null) =>
-                                            setFormData((prev: any) => ({ ...prev, startTime: date ? date.toISOString().slice(0, 16) : '' }))
-                                        }
+                                        onChange={(date: Date | null) => {
+                                            if (date) {
+                                                // Format as local datetime string for datetime-local input
+                                                const year = date.getFullYear();
+                                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                const day = String(date.getDate()).padStart(2, '0');
+                                                const hours = String(date.getHours()).padStart(2, '0');
+                                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                                const localDatetime = `${year}-${month}-${day}T${hours}:${minutes}`;
+                                                setFormData((prev: any) => ({ ...prev, startTime: localDatetime }));
+                                            } else {
+                                                setFormData((prev: any) => ({ ...prev, startTime: '' }));
+                                            }
+                                        }}
                                         showTimeSelect
                                         timeFormat="HH:mm"
                                         timeIntervals={15}
@@ -804,9 +816,20 @@ export const EventPage = () => {
                                     <Icons.Calendar className="absolute left-6 top-10 -translate-y-1/2 text-blue-500 w-5 h-5 pointer-events-none z-10" />
                                     <DatePicker
                                         selected={formData.endTime ? new Date(formData.endTime) : null}
-                                        onChange={(date: Date | null) =>
-                                            setFormData((prev: any) => ({ ...prev, endTime: date ? date.toISOString().slice(0, 16) : '' }))
-                                        }
+                                        onChange={(date: Date | null) => {
+                                            if (date) {
+                                                // Format as local datetime string for datetime-local input
+                                                const year = date.getFullYear();
+                                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                const day = String(date.getDate()).padStart(2, '0');
+                                                const hours = String(date.getHours()).padStart(2, '0');
+                                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                                const localDatetime = `${year}-${month}-${day}T${hours}:${minutes}`;
+                                                setFormData((prev: any) => ({ ...prev, endTime: localDatetime }));
+                                            } else {
+                                                setFormData((prev: any) => ({ ...prev, endTime: '' }));
+                                            }
+                                        }}
                                         showTimeSelect
                                         timeFormat="HH:mm"
                                         timeIntervals={15}
