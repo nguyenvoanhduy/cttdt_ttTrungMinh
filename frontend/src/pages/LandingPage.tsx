@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as Icons from '../components/Icons';
 import { EventStatus, type Event } from '../types';
+import type { Book } from '../types';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bookCovers, setBookCovers] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -50,7 +52,40 @@ export const LandingPage = () => {
       }
     };
 
+    const fetchBookCovers = async () => {
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${API_BASE_URL}/books`);
+        if (!response.ok) throw new Error("Failed to fetch books");
+        const data = await response.json();
+        
+        const booksArray = data.data || data || [];
+        
+        // Lọc sách có ảnh bìa
+        const booksWithCovers = booksArray.filter((book: Book) => book.coverImageUrl);
+        
+        // Chọn ngẫu nhiên 2 cuốn sách
+        const shuffled = booksWithCovers.sort(() => 0.5 - Math.random());
+        const selectedCovers = shuffled.slice(0, 2).map((book: Book) => book.coverImageUrl);
+        
+        // Nếu không đủ 2 ảnh, dùng ảnh mặc định
+        while (selectedCovers.length < 2) {
+          selectedCovers.push(`https://picsum.photos/id/${20 + selectedCovers.length}/300/400`);
+        }
+        
+        setBookCovers(selectedCovers);
+      } catch (err) {
+        console.error("Error fetching book covers:", err);
+        // Fallback to default images
+        setBookCovers([
+          'https://picsum.photos/id/24/300/400',
+          'https://picsum.photos/id/26/300/400'
+        ]);
+      }
+    };
+
     fetchEvents();
+    fetchBookCovers();
   }, []);
 
   const handleEventClick = (eventId: string) => {
@@ -112,7 +147,7 @@ export const LandingPage = () => {
            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
               <div>
                   <h2 className="text-amber-600 font-bold tracking-wider uppercase text-sm mb-2">Giới thiệu chung</h2>
-                  <h3 className="font-serif text-4xl text-gray-900 font-bold mb-6">70 Năm Hình Thành & Phát Triển</h3>
+                  <h3 className="font-serif text-4xl text-gray-900 font-bold mb-6">60 Năm Hình Thành & Phát Triển</h3>
                   <p className="text-gray-600 leading-relaxed mb-6">
                     Thánh Thất Trung Minh được thành lập với sứ mệnh hoằng khai Đại Đạo, phổ độ chúng sanh. 
                     Trải qua nhiều thăng trầm lịch sử, nơi đây đã trở thành điểm tựa tâm linh vững chắc cho hàng ngàn tín đồ.
@@ -138,7 +173,7 @@ export const LandingPage = () => {
                       <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Icons.Home className="w-6 h-6" />
                       </div>
-                      <div className="text-3xl font-bold text-gray-900 mb-1">1954</div>
+                      <div className="text-3xl font-bold text-gray-900 mb-1">1964</div>
                       <div className="text-gray-500 text-sm">Năm thành lập</div>
                   </div>
                   <div className="bg-white shadow-sm p-6 rounded-2xl text-center hover:shadow-md transition-shadow">
@@ -288,8 +323,8 @@ export const LandingPage = () => {
               </div>
               <div className="lg:w-1/2 relative">
                  <div className="grid grid-cols-2 gap-4">
-                     <img src="https://picsum.photos/id/24/300/400" className="rounded-2xl shadow-2xl transform translate-y-8 border-4 border-white/10" alt="Book Cover" />
-                     <img src="https://picsum.photos/id/26/300/400" className="rounded-2xl shadow-2xl border-4 border-white/10" alt="Song Cover" />
+                     <img src={bookCovers[0]} className="rounded-2xl shadow-2xl transform translate-y-8 border-4 border-white/10" alt="Book Cover" />
+                     <img src={bookCovers[1]} className="rounded-2xl shadow-2xl border-4 border-white/10" alt="Song Cover" />
                  </div>
               </div>
            </div>

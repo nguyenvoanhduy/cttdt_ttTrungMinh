@@ -15,6 +15,7 @@ import { ToastContainer } from '@/components/Toast';
 import { uploadImage } from '@/services/uploadService';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { convertGoogleDriveLink, isGoogleDriveLink } from "@/util/googleDrive";
 
 interface ScheduleItem {
   time: string;
@@ -38,9 +39,10 @@ export const EventPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
-  const [imageSource, setImageSource] = useState<"url" | "upload">("url");
+  const [imageSource, setImageSource] = useState<"url" | "upload" | "drive">("url");
   const [isUploading, setIsUploading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [showDriveHelp, setShowDriveHelp] = useState(false);
 
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -324,13 +326,7 @@ export const EventPage = () => {
       success('Tải ảnh lên thành công!');
     } catch (error) {
       console.error('Upload error:', error);
-      // Fallback to base64 if Cloudinary fails (without showing error to user)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((p: any) => ({ ...p, bannerUrl: reader.result }));
-        success('Đã chọn ảnh, sẽ tải lên khi lưu sự kiện.');
-      };
-      reader.readAsDataURL(file);
+      showError('Không thể tải ảnh lên Cloudinary. Vui lòng thử lại.');
     } finally {
       setIsUploading(false);
     }
@@ -696,7 +692,63 @@ export const EventPage = () => {
 
                             <div className="md:col-span-12">
                                 <div className="flex items-center justify-between mb-2 px-1">
-                                    <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Ảnh bìa truyền thông (Banner)</label>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-sm font-black text-slate-700 uppercase tracking-wide">Ảnh bìa truyền thông (Banner)</label>
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowDriveHelp(!showDriveHelp)}
+                                                className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors cursor-help"
+                                                title="Hướng dẫn lấy link Google Drive"
+                                            >
+                                                <Icons.Info className="w-3.5 h-3.5" />
+                                            </button>
+                                            {showDriveHelp && (
+                                                <div className="absolute left-0 top-7 z-50 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 p-4 animate-in fade-in zoom-in-95 duration-200">
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                                                            <Icons.Info className="w-4 h-4 text-blue-500" />
+                                                            Cách lấy link Google Drive
+                                                        </h4>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowDriveHelp(false)}
+                                                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                                                        >
+                                                            <Icons.X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <ol className="space-y-2 text-sm text-slate-600">
+                                                        <li className="flex gap-2">
+                                                            <span className="font-bold text-blue-600 shrink-0">1.</span>
+                                                            <span>Mở file ảnh trên <strong>Google Drive</strong></span>
+                                                        </li>
+                                                        <li className="flex gap-2">
+                                                            <span className="font-bold text-blue-600 shrink-0">2.</span>
+                                                            <span>Nhấn nút <strong>"Chia sẻ"</strong> ở góc trên bên phải</span>
+                                                        </li>
+                                                        <li className="flex gap-2">
+                                                            <span className="font-bold text-blue-600 shrink-0">3.</span>
+                                                            <span>Chọn <strong>"Bất kỳ ai có đường link"</strong></span>
+                                                        </li>
+                                                        <li className="flex gap-2">
+                                                            <span className="font-bold text-blue-600 shrink-0">4.</span>
+                                                            <span>Nhấn <strong>"Sao chép đường link"</strong></span>
+                                                        </li>
+                                                        <li className="flex gap-2">
+                                                            <span className="font-bold text-blue-600 shrink-0">5.</span>
+                                                            <span>Dán link vào ô bên dưới</span>
+                                                        </li>
+                                                    </ol>
+                                                    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                                                        <p className="text-xs text-blue-700">
+                                                            <strong>💡 Lưu ý:</strong> Link sẽ tự động được chuyển đổi sang định dạng hiển thị!
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="flex bg-slate-100 p-1 rounded-xl">
                                         <button 
                                             type="button"
@@ -717,14 +769,31 @@ export const EventPage = () => {
                                 <div className="flex gap-5">
                                     <div className="flex-1">
                                         {imageSource === 'url' ? (
-                                            <input 
-                                                type="text"
-                                                name="bannerUrl"
-                                                placeholder="Nhập link ảnh hoặc link Google Drive..."
-                                                value={formData.bannerUrl}
-                                                onChange={handleInputChange}
-                                                className="w-full h-10 px-6 py-4.5 bg-white border border-slate-200 rounded-[1.5rem] focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-medium text-slate-500 shadow-sm"
-                                            />
+                                            <div className="space-y-3">
+                                                <input 
+                                                    type="text"
+                                                    name="bannerUrl"
+                                                    placeholder="Nhập link ảnh trực tiếp hoặc link Google Drive..."
+                                                    value={formData.bannerUrl}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        // Auto-convert Google Drive link
+                                                        if (isGoogleDriveLink(value)) {
+                                                            const directUrl = convertGoogleDriveLink(value);
+                                                            if (directUrl) {
+                                                                setFormData((p: any) => ({ ...p, bannerUrl: directUrl }));
+                                                                success('Đã chuyển đổi link Google Drive!');
+                                                                return;
+                                                            }
+                                                        }
+                                                        setFormData((p: any) => ({ ...p, bannerUrl: value }));
+                                                    }}
+                                                    className="w-full h-10 px-6 py-4.5 bg-white border border-slate-200 rounded-[1.5rem] focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-medium text-slate-500 shadow-sm"
+                                                />
+                                                <p className="text-xs text-slate-500 px-2">
+                                                    💡 Hỗ trợ: Link ảnh trực tiếp hoặc link Google Drive (tự động chuyển đổi)
+                                                </p>
+                                            </div>
                                         ) : (
                                             <div 
                                                 onClick={() => !isUploading && fileInputRef.current?.click()}

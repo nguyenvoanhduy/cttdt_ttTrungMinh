@@ -17,7 +17,9 @@ export const PublicGalleryPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingImages, setLoadingImages] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [albumImages, setAlbumImages] = useState<any[]>([]);
 
   // Fetch albums from API
   useEffect(() => {
@@ -48,13 +50,11 @@ export const PublicGalleryPage = () => {
   }, []);
 
   // Helper to generate gallery images for the active album view
-  const activeImages: GalleryImage[] = activeAlbum 
-    ? (activeAlbum.mediaFiles?.map((media: any, idx: number) => ({
-        id: media._id || `${activeAlbum._id}-${idx}`,
-        src: media.fileUrl || `https://picsum.photos/seed/${activeAlbum._id}_img_${idx}/800/600`,
-        caption: media.caption || `${activeAlbum.title} - Ảnh ${idx + 1}`
-      })) || [])
-    : [];
+  const activeImages: GalleryImage[] = albumImages.map((media: any, idx: number) => ({
+    id: media._id || `img-${idx}`,
+    src: media.fileUrl || '',
+    caption: media.caption || `Ảnh ${idx + 1}`
+  }));
 
   // FILTERING LOGIC
   const filteredAlbums = albums.filter(album => 
@@ -66,14 +66,38 @@ export const PublicGalleryPage = () => {
       img.caption.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAlbumClick = (album: Album) => {
-      setActiveAlbum(album);
-      setSearchTerm(''); // Clear search when entering album
+  const handleAlbumClick = async (album: Album) => {
+    setActiveAlbum(album);
+    setSearchTerm(''); // Clear search when entering album
+    
+    // Fetch media for this album
+    try {
+      setLoadingImages(true);
+      const token = localStorage.getItem("accessToken");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${API_BASE_URL}/gallery/albums/${album._id}/media`, { headers });
+      
+      if (!response.ok) throw new Error("Failed to fetch album images");
+
+      const data = await response.json();
+      setAlbumImages(data.data || []);
+    } catch (err) {
+      console.error("Error fetching album images:", err);
+      setAlbumImages([]);
+    } finally {
+      setLoadingImages(false);
+    }
   };
 
   const handleBackToAlbums = () => {
-      setActiveAlbum(null);
-      setSearchTerm(''); // Clear search when going back
+    setActiveAlbum(null);
+    setAlbumImages([]);
+    setSearchTerm(''); // Clear search when going back
   };
 
   return (
@@ -203,13 +227,19 @@ export const PublicGalleryPage = () => {
                              )}
                              <span className="flex items-center font-bold text-gray-700">
                                  <Icons.Image className="w-4 h-4 mr-1.5"/> 
-                                 {activeAlbum.mediaFiles?.length || 0} hình
+                                 {albumImages.length} hình
                              </span>
                     </div>
                 </div>
 
                 {/* Images Grid */}
-                <div className="columns-1 md:columns-3 lg:columns-4 gap-4 space-y-4">
+                {loadingImages ? (
+                  <div className="text-center py-20">
+                    <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="mt-4 text-gray-600">Đang tải ảnh...</p>
+                  </div>
+                ) : (
+                  <div className="columns-1 md:columns-3 lg:columns-4 gap-4 space-y-4">
                     {filteredImages.length > 0 ? filteredImages.map(img => (
                         <div 
                             key={img.id}
@@ -231,7 +261,8 @@ export const PublicGalleryPage = () => {
                              Không tìm thấy hình ảnh nào.
                         </div>
                     )}
-                </div>
+                  </div>
+                )}
             </div>
         )}
       </div>

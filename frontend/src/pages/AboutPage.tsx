@@ -24,7 +24,7 @@ export const AboutPage = () => {
                         className="rounded-xl shadow-lg w-full"
                     />
                     <div className="absolute -bottom-6 -right-6 bg-amber-400 p-6 rounded-lg shadow-lg text-amber-950">
-                        <span className="block text-4xl font-bold">70</span>
+                        <span className="block text-4xl font-bold">60</span>
                         <span className="block text-sm font-semibold uppercase">Năm Hình Thành</span>
                     </div>
                 </div>
@@ -34,7 +34,7 @@ export const AboutPage = () => {
                 <h3 className="font-serif text-3xl font-bold text-gray-900 mb-6">Khởi Nguyên & Phát Triển</h3>
                 <div className="prose prose-blue text-gray-600">
                     <p className="mb-4">
-                        Thánh Thất Trung Minh được thành lập vào năm 1954, trong bối cảnh Đạo Cao Đài đang phát triển mạnh mẽ tại khu vực miền Tây Nam Bộ. 
+                        Thánh Thất Trung Minh được thành lập vào năm 1964, trong bối cảnh Đạo Cao Đài đang phát triển mạnh mẽ tại khu vực miền Tây Nam Bộ. 
                         Ban đầu, Thánh Thất chỉ là một ngôi thờ tạm bằng tre lá đơn sơ, là nơi quy tụ của một nhóm nhỏ tín đồ địa phương.
                     </p>
                     <p className="mb-4">

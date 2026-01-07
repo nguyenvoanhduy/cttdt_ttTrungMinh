@@ -6,6 +6,7 @@ import type { Book, Song, Video } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/Toast';
+import { uploadImage } from '@/services/uploadService';
 
 interface LibraryTab {
     id: string;
@@ -57,6 +58,7 @@ export const Library = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editingType, setEditingType] = useState<'book' | 'music' | 'video' | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; type: 'item' | 'category'; name: string; itemType?: string }>({ 
     open: false, id: '', type: 'item', name: '', itemType: '' 
   });
@@ -130,14 +132,20 @@ export const Library = () => {
       setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setFormData((prev: any) => ({ ...prev, coverImageUrl: reader.result as string }));
-        };
-        reader.readAsDataURL(file);
+    if (!file) return;
+    
+    try {
+        setIsUploadingCover(true);
+        const cloudinaryUrl = await uploadImage(file);
+        setFormData((prev: any) => ({ ...prev, coverImageUrl: cloudinaryUrl }));
+        success('Tải ảnh bìa lên thành công!');
+    } catch (error) {
+        console.error('Upload cover image error:', error);
+        showError('Không thể tải ảnh bìa lên Cloudinary. Vui lòng thử lại.');
+    } finally {
+        setIsUploadingCover(false);
     }
   };
 
@@ -222,19 +230,8 @@ export const Library = () => {
 
           const { libraryService } = await import('@/services/libraryService');
 
-          // Upload cover image if present (only for books, not music)
+          // Use coverImageUrl directly from formData (already uploaded to Cloudinary in handleFileChange)
           let coverImageUrl = formData.coverImageUrl || undefined;
-          if (activeType !== 'music' && formData.coverImageUrl && typeof formData.coverImageUrl === 'string' && formData.coverImageUrl.startsWith('data:')) {
-              // It's a base64 encoded image from file input - convert to file and upload
-              const blob = await fetch(formData.coverImageUrl).then(r => r.blob());
-              const file = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
-              try {
-                  const uploadRes = await libraryService.uploadImage(file);
-                  coverImageUrl = uploadRes.data.imageUrl;
-              } catch (err) {
-                  console.warn('Cover upload failed, skipping:', err);
-              }
-          }
 
           // Upload content file if present (audio for music, doc for books)
           let fileUrl = undefined;
@@ -635,10 +632,15 @@ export const Library = () => {
                                 <div>
                                      <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh bìa</label>
                                      <div 
-                                        onClick={handleTriggerFileUpload}
-                                        className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors relative overflow-hidden h-32 bg-gray-50"
+                                        onClick={() => !isUploadingCover && handleTriggerFileUpload()}
+                                        className={`border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors relative overflow-hidden h-32 bg-gray-50 ${isUploadingCover ? 'opacity-50 cursor-wait' : ''}`}
                                      >
-                                         {formData.coverImageUrl ? (
+                                         {isUploadingCover ? (
+                                             <div className="flex flex-col items-center">
+                                                 <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                                 <span className="text-sm text-blue-600 font-medium">Đang tải lên Cloudinary...</span>
+                                             </div>
+                                         ) : formData.coverImageUrl ? (
                                              <img src={formData.coverImageUrl} className="w-full h-full object-cover absolute inset-0 rounded-lg" alt="Preview" />
                                          ) : (
                                              <>
@@ -652,6 +654,7 @@ export const Library = () => {
                                             className="hidden" 
                                             accept="image/*"
                                             onChange={handleFileChange}
+                                            disabled={isUploadingCover}
                                          />
                                      </div>
                                 </div>
