@@ -270,9 +270,23 @@ export const Roles = () => {
                     <tr key={user._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs mr-3">
-                            {personal ? personal.fullname.charAt(0) : "U"}
-                          </div>
+                          {personal?.avatarUrl ? (
+                            <div className="h-8 w-8 rounded-full overflow-hidden mr-3 flex-shrink-0 bg-gray-100">
+                              <img 
+                                src={personal.avatarUrl} 
+                                alt={personal.fullname}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  console.log('Avatar load failed:', personal.avatarUrl);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold text-xs mr-3 flex-shrink-0">
+                              {personal ? personal.fullname.charAt(0).toUpperCase() : "U"}
+                            </div>
+                          )}
                           <div className="text-sm font-medium text-gray-900">
                             {personal ? personal.fullname : "Unknown"}
                           </div>

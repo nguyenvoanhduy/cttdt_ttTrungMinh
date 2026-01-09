@@ -4,6 +4,8 @@ A full-stack web application built with React (frontend) and Express + MongoDB (
 
 ---
 
+Tiếng Việt: Xem hướng dẫn chi tiết tại [docs/HuongDanSuDung.md](docs/HuongDanSuDung.md).
+
 ## 🚀 Quick overview
 
 - Frontend: React + Vite (TypeScript-ready), multiple reusable UI components and pages.

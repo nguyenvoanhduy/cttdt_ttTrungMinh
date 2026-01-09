@@ -14,10 +14,10 @@ const router = express.Router();
 router.post("/", (req, res, next) => {
   upload.single("image")(req, res, (err) => {
     if (err) {
-      console.error("Multer error:", err);
+      console.error("Multer/Cloudinary error:", err);
       return res.status(400).json({
         success: false,
-        message: err.message || "Error uploading file"
+        message: err.message || "Error uploading file to Cloudinary"
       });
     }
 
@@ -29,22 +29,35 @@ router.post("/", (req, res, next) => {
         });
       }
 
-      console.log('File uploaded successfully:', {
+      // Verify it's a Cloudinary URL
+      if (!req.file.path || !req.file.path.includes('cloudinary.com')) {
+        console.error('Invalid Cloudinary URL:', req.file.path);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload to Cloudinary - invalid URL returned"
+        });
+      }
+
+      console.log('File uploaded to Cloudinary successfully:', {
         filename: req.file.filename,
         path: req.file.path,
-        size: req.file.size
+        size: req.file.size,
+        mimetype: req.file.mimetype
       });
 
+      // Return consistent response format with Cloudinary URL
       res.json({
         success: true,
         imageUrl: req.file.path,
+        url: req.file.path,
         publicId: req.file.filename,
+        message: 'File uploaded to Cloudinary successfully'
       });
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({
         success: false,
-        message: "Error uploading file",
+        message: "Error uploading file to Cloudinary",
         error: error.message
       });
     }

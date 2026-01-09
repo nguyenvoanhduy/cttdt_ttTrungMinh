@@ -24,6 +24,7 @@ export const GalleryManagement = () => {
   // Images state
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, fileName: '' });
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   
@@ -138,8 +139,36 @@ export const GalleryManagement = () => {
 
     try {
       setIsUploading(true);
+      setUploadProgress({ current: 0, total: files.length, fileName: '' });
       setError(null);
       const token = getAuthToken();
+
+      // Get existing image numbers to find missing numbers or get next number
+      const existingNumbers = images
+        .map(img => {
+          const match = img.caption.match(/^Hình (\d+)/);
+          return match ? parseInt(match[1]) : null;
+        })
+        .filter((num): num is number => num !== null)
+        .sort((a, b) => a - b);
+
+      console.log('Existing numbers:', existingNumbers);
+
+      // Generate next available number (fill gaps first, then continue)
+      const getNextAvailableNumber = (): number => {
+        // Find first missing number
+        for (let i = 1; i <= existingNumbers.length + 1; i++) {
+          if (!existingNumbers.includes(i)) {
+            existingNumbers.push(i); // Add to list to avoid reuse
+            existingNumbers.sort((a, b) => a - b);
+            return i;
+          }
+        }
+        // No gaps, get next sequential
+        const next = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+        existingNumbers.push(next);
+        return next;
+      };
 
       // Upload each file
       const uploadedMedia = [];
@@ -148,36 +177,36 @@ export const GalleryManagement = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Step 1: Upload file to Cloudinary first
-        const formData = new FormData();
-        formData.append('image', file);
+        // Update progress
+        setUploadProgress({ current: i + 1, total: files.length, fileName: file.name });
         
-        console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+        // Validate file type
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+          failedUploads.push(`${file.name}: Chỉ chấp nhận file ảnh hoặc video`);
+          continue;
+        }
+        
+        // Validate file size (max 10MB for images, 100MB for videos)
+        const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+          failedUploads.push(`${file.name}: Kích thước vượt quá ${file.type.startsWith('video/') ? '100MB' : '10MB'}`);
+          continue;
+        }
+        
+        console.log(`[${i + 1}/${files.length}] Uploading: ${file.name}`);
         
         try {
-          // Try Cloudinary upload first
-          let uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+          // Upload to Cloudinary ONLY
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
             },
             body: formData
           });
-
-          // If Cloudinary fails, try local upload as fallback
-          if (!uploadResponse.ok) {
-            console.warn(`Cloudinary upload failed for ${file.name}, trying local upload...`);
-            const localFormData = new FormData();
-            localFormData.append('file', file);
-            
-            uploadResponse = await fetch(`${API_BASE_URL}/upload/content`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              },
-              body: localFormData
-            });
-          }
 
           if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
@@ -187,36 +216,46 @@ export const GalleryManagement = () => {
             } catch {
               errorData = { message: errorText || `HTTP ${uploadResponse.status}` };
             }
-            console.error(`Failed to upload ${file.name}:`, {
+            console.error(`Failed to upload ${file.name} to Cloudinary:`, {
               status: uploadResponse.status,
               statusText: uploadResponse.statusText,
               error: errorData
             });
-            failedUploads.push(`${file.name}: ${errorData.message || errorData.error || 'Upload failed'}`);
+            failedUploads.push(`${file.name}: ${errorData.message || errorData.error || 'Upload lên Cloudinary thất bại'}`);
             continue;
           }
 
           const uploadResult = await uploadResponse.json();
+          console.log(`Upload result for ${file.name}:`, uploadResult);
           
-          // Handle both Cloudinary and local upload responses
+          // Get Cloudinary URL
           const fileUrl = uploadResult.imageUrl || uploadResult.url;
           
           if (!fileUrl) {
             console.error(`No URL in response for ${file.name}:`, uploadResult);
-            failedUploads.push(`${file.name}: No image URL returned from server`);
+            failedUploads.push(`${file.name}: Không nhận được URL từ Cloudinary`);
             continue;
           }
           
-          // Convert local path to full URL if needed
-          const finalUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL.replace('/api', '')}${fileUrl}`;
+          // Verify it's a Cloudinary URL
+          if (!fileUrl.includes('cloudinary.com') && !fileUrl.startsWith('http')) {
+            console.error(`Invalid Cloudinary URL for ${file.name}:`, fileUrl);
+            failedUploads.push(`${file.name}: URL không hợp lệ từ Cloudinary`);
+            continue;
+          }
+          
+          const finalUrl = fileUrl;
 
-          // Step 2: Save media info to database
+          // Step 2: Get next available number and save to database
+          const imageNumber = getNextAvailableNumber();
+          console.log(`Assigning number ${imageNumber} to ${file.name}`);
+          
           const mediaPayload = {
             albumId: selectedAlbumId,
             fileUrl: finalUrl,
-            caption: file.name.replace(/\.[^/.]+$/, ''),
+            caption: `Hình ${imageNumber}`,
             fileType: file.type.startsWith('video') ? 'video' : 'image',
-            altText: file.name
+            altText: `Hình ${imageNumber}`
           };
 
           const response = await fetch(`${API_BASE_URL}/gallery/albums/${selectedAlbumId}/media`, {
@@ -231,7 +270,11 @@ export const GalleryManagement = () => {
           if (response.ok) {
             const result = await response.json();
             uploadedMedia.push(result.data);
+            console.log(`✓ [${i + 1}/${files.length}] ${file.name} → Hình ${imageNumber}`);
           } else {
+            // If failed to save, remove the number from used list
+            const index = existingNumbers.indexOf(imageNumber);
+            if (index > -1) existingNumbers.splice(index, 1);
             const errorData = await response.json().catch(() => ({}));
             failedUploads.push(`${file.name}: ${errorData.message || 'Failed to save to database'}`);
           }
@@ -248,11 +291,19 @@ export const GalleryManagement = () => {
 
       // Show success/error messages
       if (failedUploads.length > 0) {
-        setError(`Tải lên hoàn tất: ${uploadedMedia.length} thành công, ${failedUploads.length} thất bại.\n${failedUploads.slice(0, 3).join('\n')}${failedUploads.length > 3 ? '\n...' : ''}`);
+        const successMsg = uploadedMedia.length > 0 
+          ? `✓ ${uploadedMedia.length} ảnh đã tải lên Cloudinary thành công\n` 
+          : '';
+        const failMsg = `✗ ${failedUploads.length} ảnh thất bại:\n${failedUploads.slice(0, 3).join('\n')}${failedUploads.length > 3 ? `\n... và ${failedUploads.length - 3} ảnh khác` : ''}`;
+        setError(successMsg + failMsg);
+        if (uploadedMedia.length > 0) {
+          success(`Đã upload ${uploadedMedia.length} ảnh lên Cloudinary thành công`);
+        }
       } else if (uploadedMedia.length > 0) {
         setError(null);
+        success(`Đã upload ${uploadedMedia.length} ảnh lên Cloudinary thành công`);
       } else {
-        setError('Không có file nào được tải lên thành công.');
+        setError('Không có file nào được tải lên thành công. Vui lòng kiểm tra kết nối Cloudinary.');
       }
 
       if (fileInputRef.current) {
@@ -263,6 +314,7 @@ export const GalleryManagement = () => {
       setError(`Lỗi tải file lên: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0, fileName: '' });
     }
   };
 
@@ -380,10 +432,34 @@ export const GalleryManagement = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setModalError('Vui lòng chọn file ảnh hợp lệ');
+      if (albumCoverInputRef.current) {
+        albumCoverInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setModalError('Kích thước ảnh không được vượt quá 10MB');
+      if (albumCoverInputRef.current) {
+        albumCoverInputRef.current.value = '';
+      }
+      return;
+    }
+    
     try {
       setModalError(null);
       setIsUploadingCover(true);
       const token = getAuthToken();
+      
+      console.log('Uploading cover image:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
       
       // Upload to Cloudinary
       const formData = new FormData();
@@ -398,23 +474,39 @@ export const GalleryManagement = () => {
       });
       
       if (!uploadResponse.ok) {
-        throw new Error('Không thể tải ảnh lên');
+        const errorText = await uploadResponse.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || `HTTP ${uploadResponse.status}` };
+        }
+        console.error('Upload failed:', errorData);
+        throw new Error(errorData.message || 'Không thể tải ảnh lên');
       }
       
       const uploadResult = await uploadResponse.json();
+      console.log('Upload result:', uploadResult);
+      
       const imageUrl = uploadResult.imageUrl || uploadResult.url;
       
       if (!imageUrl) {
+        console.error('No image URL in response:', uploadResult);
         throw new Error('Không nhận được URL ảnh từ server');
       }
       
       setNewAlbumData(prev => ({ ...prev, coverImage: imageUrl }));
       setModalError(null);
+      success('Đã tải ảnh bìa lên thành công');
     } catch (err) {
       console.error('Error uploading cover image:', err);
-      setModalError('Lỗi tải ảnh bìa lên. Vui lòng thử lại.');
+      const errorMsg = err instanceof Error ? err.message : 'Lỗi không xác định';
+      setModalError(`Lỗi tải ảnh bìa: ${errorMsg}`);
     } finally {
       setIsUploadingCover(false);
+      if (albumCoverInputRef.current) {
+        albumCoverInputRef.current.value = '';
+      }
     }
   };
 
@@ -612,7 +704,7 @@ export const GalleryManagement = () => {
                                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors text-sm font-bold disabled:opacity-50"
                             >
                                 {isUploading ? (
-                                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div> Đang tải...</>
+                                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div> Đang tải {uploadProgress.current}/{uploadProgress.total}</>
                                 ) : (
                                     <><Icons.Upload className="w-4 h-4 mr-2" /> Tải ảnh lên</>
                                 )}
@@ -620,6 +712,30 @@ export const GalleryManagement = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Progress Bar */}
+                {isUploading && uploadProgress.total > 0 && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-blue-900">
+                                Đang tải lên Cloudinary: {uploadProgress.current} / {uploadProgress.total}
+                            </span>
+                            <span className="text-xs text-blue-600">
+                                {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                            </span>
+                        </div>
+                        <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                            <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-xs text-blue-700 truncate">
+                            <Icons.Upload className="w-3 h-3 inline mr-1" />
+                            {uploadProgress.fileName}
+                        </p>
+                    </div>
+                )}
 
                 {isLoadingImages ? (
                   <div className="flex items-center justify-center py-12">
@@ -751,7 +867,11 @@ export const GalleryManagement = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh bìa Album</label>
                                 <div 
                                     onClick={() => !isUploadingCover && albumCoverInputRef.current?.click()}
-                                    className={`border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center transition-colors relative overflow-hidden h-32 bg-gray-50 ${
+                                    className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center transition-colors relative overflow-hidden h-32 ${
+                                        newAlbumData.coverImage 
+                                            ? 'border-emerald-400 bg-emerald-50/50' 
+                                            : 'border-gray-300 bg-gray-50'
+                                    } ${
                                         isUploadingCover ? 'cursor-wait opacity-50' : 'cursor-pointer hover:border-emerald-500 hover:bg-emerald-50'
                                     }`}
                                 >
@@ -761,19 +881,43 @@ export const GalleryManagement = () => {
                                             <span className="text-sm text-gray-500">Đang tải ảnh lên...</span>
                                         </>
                                     ) : newAlbumData.coverImage ? (
-                                        <img 
-                                          src={newAlbumData.coverImage} 
-                                          className="w-full h-full object-cover absolute inset-0 rounded-lg" 
-                                          alt="Cover"
-                                          onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                          }}
-                                        />
+                                        <>
+                                            <img 
+                                              src={newAlbumData.coverImage} 
+                                              className="w-full h-full object-cover absolute inset-0 rounded-lg" 
+                                              alt="Cover"
+                                              onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                console.error('Failed to load cover image:', newAlbumData.coverImage);
+                                              }}
+                                            />
+                                            <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
+                                                <div className="opacity-0 hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
+                                                    <Icons.Camera className="w-5 h-5 text-gray-700" />
+                                                </div>
+                                            </div>
+                                        </>
                                     ) : (
-                                        <><Icons.Camera className="w-8 h-8 text-gray-400 mb-2" /><span className="text-sm text-gray-500">Chọn ảnh bìa</span></>
+                                        <>
+                                            <Icons.Camera className="w-8 h-8 text-gray-400 mb-2" />
+                                            <span className="text-sm text-gray-500">Chọn ảnh bìa</span>
+                                            <span className="text-xs text-gray-400 mt-1">Tối đa 10MB</span>
+                                        </>
                                     )}
                                     <input type="file" ref={albumCoverInputRef} className="hidden" accept="image/*" onChange={handleAlbumCoverChange} disabled={isUploadingCover} />
                                 </div>
+                                {newAlbumData.coverImage && !isUploadingCover && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNewAlbumData(prev => ({ ...prev, coverImage: undefined }));
+                                        }}
+                                        className="mt-2 text-xs text-red-600 hover:text-red-700 font-medium"
+                                    >
+                                        Xóa ảnh bìa
+                                    </button>
+                                )}
                             </div>
                         </form>
                     </div>

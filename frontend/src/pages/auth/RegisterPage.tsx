@@ -35,6 +35,13 @@ export const RegisterPage = () => {
       return;
     }
 
+    // Validate phone number format (Vietnam: 10 digits, starts with 0)
+    const phoneRegex = /^0[3|5|7|8|9][0-9]{8}$/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      setError("Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng số Việt Nam (10 số, bắt đầu bằng 0).");
+      return;
+    }
+
     if (formData.password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
@@ -160,10 +167,14 @@ export const RegisterPage = () => {
                 </div>
                 <input
                   name="phoneNumber"
+                  type="tel"
                   required
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder="09xx xxx xxx"
+                  pattern="0[3|5|7|8|9][0-9]{8}"
+                  maxLength={10}
+                  title="Số điện thoại phải có 10 số và bắt đầu bằng 0"
                   className="w-full pl-14 pr-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-violet-500 focus:bg-white outline-none font-semibold"
                 />
               </div>

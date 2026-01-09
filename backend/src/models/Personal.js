@@ -25,7 +25,7 @@ const personalSchema = new mongoose.Schema({
     type: String,
     trim: true,
     sparse: true, // Cho phép null/undefined và không bắt buộc unique
-  },
+  },  
 
   fullname: {
     type: String,

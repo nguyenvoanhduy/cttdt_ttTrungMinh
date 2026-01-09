@@ -316,7 +316,14 @@ export const getMessagesBySession = async (req, res) => {
 export const getAllSessions = async (req, res) => {
   try {
     const sessions = await ChatSession.find()
-      .populate('userId', 'name email phoneNumber')
+      .populate({
+        path: 'userId',
+        select: 'name email phonenumber',
+        populate: {
+          path: 'personalId',
+          select: 'fullname avatarUrl email phonenumber'
+        }
+      })
       .sort({ startedAt: -1 })
       .limit(100);
 

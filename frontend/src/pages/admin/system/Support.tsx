@@ -401,30 +401,55 @@ export const Support = () => {
                 <div className="text-sm text-gray-500">Chưa có hội thoại nào</div>
               </div>
             ) : (
-              sessions.map(s => (
-                <div
-                  key={s._id}
-                  onClick={() => {
-                    setActiveSession(s);
-                    loadMessages(s._id);
-                  }}
-                  className={`p-4 cursor-pointer border-b hover:bg-gray-50 ${
-                    activeSession?._id === s._id
-                      ? "bg-blue-50 border-l-4 border-blue-500"
-                      : ""
-                  }`}
-                >
-                  <div className="font-bold text-sm">
-                    {s.userId?.name || s.userId?.phoneNumber || `Khách #${s._id.slice(-6)}`}
+              sessions.map(s => {
+                // Try to get user info - backend may not populate fully
+                const personal = s.userId?.personalId;
+                const userName = personal?.fullname || s.userId?.name || s.userId?.phonenumber || `Người dùng ${s.userId?._id?.slice(-6) || ''}`;
+                const userAvatar = personal?.avatarUrl;
+                
+                return (
+                  <div
+                    key={s._id}
+                    onClick={() => {
+                      setActiveSession(s);
+                      loadMessages(s._id);
+                    }}
+                    className={`p-4 cursor-pointer border-b hover:bg-gray-50 ${
+                      activeSession?._id === s._id
+                        ? "bg-blue-50 border-l-4 border-blue-500"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      {userAvatar ? (
+                        <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+                          <img 
+                            src={userAvatar} 
+                            alt={userName}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {userName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm truncate">{userName}</div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {s.lastMessage || "Chưa có tin nhắn"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-400 pl-13">
+                      {new Date(s.startedAt).toLocaleString('vi-VN')}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {s.lastMessage || "Chưa có tin nhắn"}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {new Date(s.startedAt).toLocaleString('vi-VN')}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
             </div>
           </div>
@@ -441,13 +466,41 @@ export const Support = () => {
             ) : (
               <>
                 <div className="p-4 bg-white border-b flex items-center justify-between">
-                  <div>
-                    <div className="font-bold">
-                      {activeSession.userId?.name || activeSession.userId?.phoneNumber || `Khách #${activeSession._id.slice(-6)}`}
-                    </div>
-                    {activeSession.userId?.email && (
-                      <div className="text-xs text-gray-500">{activeSession.userId.email}</div>
-                    )}
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const personal = activeSession.userId?.personalId;
+                      const userName = personal?.fullname || activeSession.userId?.name || activeSession.userId?.phonenumber || `Người dùng ${activeSession.userId?._id?.slice(-6) || ''}`;
+                      const userAvatar = personal?.avatarUrl;
+                      
+                      return (
+                        <>
+                          {userAvatar ? (
+                            <div className="h-10 w-10 rounded-full overflow-hidden flex-shrink-0 bg-gray-100">
+                              <img 
+                                src={userAvatar} 
+                                alt={userName}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                              {userName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold">{userName}</div>
+                            {(activeSession.userId?.email || activeSession.userId?.phonenumber || personal?.phonenumber) && (
+                              <div className="text-xs text-gray-500">
+                                {activeSession.userId?.email || activeSession.userId?.phonenumber || personal?.phonenumber}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="flex gap-2">
                     <button
