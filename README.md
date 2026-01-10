@@ -1,10 +1,8 @@
-# Trung tâm Trung Minh — Web application
+# Thánh Thất Trung Minh — Web application
 
 A full-stack web application built with React (frontend) and Express + MongoDB (backend). This repo contains a modern Vite + React TypeScript frontend and an Express server using Mongoose and JWT-based authentication.
 
 ---
-
-Tiếng Việt: Xem hướng dẫn chi tiết tại [docs/HuongDanSuDung.md](docs/HuongDanSuDung.md).
 
 ## 🚀 Quick overview
 
